@@ -33,7 +33,6 @@ public class TestStrafe extends OpMode {
 
         // We set the left motors in reverse which is needed for drive trains where the left
         // motors are opposite to the right ones.
-        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // This uses RUN_USING_ENCODER to be more accurate.   If you don't have the encoder
@@ -42,6 +41,12 @@ public class TestStrafe extends OpMode {
         frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        
+        // Make sure the robot breaks when you let go of the controller
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         imu = hardwareMap.get(IMU.class, "imu");
         // Matches the orientation of our robot
@@ -66,6 +71,13 @@ public class TestStrafe extends OpMode {
         // the robot is currently pointing
         if (gamepad1.a) {
             imu.resetYaw();
+            backLeftDrive.setPower(0.5);
+        } else if (gamepad1.x) {
+            backRightDrive.setPower(0.5);
+        } else if (gamepad1.y) {
+            frontRightDrive.setPower(0.5);
+        } else if (gamepad1.b) {
+            frontLeftDrive.setPower(0.5);
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)
@@ -94,7 +106,7 @@ public class TestStrafe extends OpMode {
         drive(newForward, newRight, rotate);
     }
 
-    public void drive(double forward, double right, double rotate) {
+    private void drive(double forward, double right, double rotate) {
         // Calculates the power needed for each wheel based on the amount of forward,
         // strafe right, and rotate
         double frontLeftPower = forward + right + rotate;
@@ -105,11 +117,21 @@ public class TestStrafe extends OpMode {
         double maxPower = 1.0;
 
         // This is needed to make sure we don't pass > 1.0 to any wheel
-        maxPower = Math.max(maxPower, Math.abs(frontLeftPower), Math.abs(frontRightPower), Math.abs(backLeftPower), Math.abs(backRightPower));
-
+        maxPower = max_magnitude(frontLeftPower, frontRightPower, backRightPower, backLeftPower);
+        
         frontLeftDrive.setPower(frontLeftPower / maxPower);
         frontRightDrive.setPower(frontRightPower / maxPower);
         backLeftDrive.setPower(backLeftPower / maxPower);
         backRightDrive.setPower(backRightPower / maxPower);
+    }
+
+    private double max_magnitude(double... numbers) {
+        double maximum = 0;
+
+        for (double number : numbers) {
+            maximum = Math.max(Math.abs(number), maximum);
+        }
+
+        return maximum;
     }
 }

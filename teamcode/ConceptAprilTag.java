@@ -129,8 +129,8 @@ public class ConceptAprilTag extends LinearOpMode {
             //.setDrawAxes(false)
             //.setDrawCubeProjection(false)
             //.setDrawTagOutline(true)
-            //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-            //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+            .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+            .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
             //.setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
 
             // == CAMERA CALIBRATION ==

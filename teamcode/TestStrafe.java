@@ -114,15 +114,23 @@ public class TestStrafe extends OpMode {
         double backRightPower = forward + right - rotate;
         double backLeftPower = forward - right + rotate;
 
-        double maxPower = 1.0;
 
-        // This is needed to make sure we don't pass > 1.0 to any wheel
-        maxPower = max_magnitude(frontLeftPower, frontRightPower, backRightPower, backLeftPower);
-        
-        frontLeftDrive.setPower(frontLeftPower / maxPower);
-        frontRightDrive.setPower(frontRightPower / maxPower);
-        backLeftDrive.setPower(backLeftPower / maxPower);
-        backRightDrive.setPower(backRightPower / maxPower);
+        // Normalize the wheel powers if any exceeds 1.0
+        double powers[] = {frontLeftPower, frontRightPower, backRightPower, backLeftPower};
+        if (max_magnitude(powers) > 1.0) {
+            // Normalize the powers so no wheel power exceeds 1.0
+            double maxPower = max_magnitude(powers);
+            frontLeftPower /= maxPower;
+            frontRightPower /= maxPower;
+            backRightPower /= maxPower;
+            backLeftPower /= maxPower;
+        }
+
+
+        frontLeftDrive.setPower(frontLeftPower);
+        frontRightDrive.setPower(frontRightPower);
+        backLeftDrive.setPower(backLeftPower);
+        backRightDrive.setPower(backRightPower);
     }
 
     private double max_magnitude(double... numbers) {

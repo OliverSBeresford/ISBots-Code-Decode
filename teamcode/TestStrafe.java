@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.CRServo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 /*
@@ -23,6 +24,9 @@ public class TestStrafe extends OpMode {
 
     // This declares the IMU needed to get the current direction the robot is facing
     IMU imu;
+
+    // Declares the servo picky uppy thing
+    CRServo servo_picky_uppy;
 
     @Override
     public void init() {
@@ -58,6 +62,9 @@ public class TestStrafe extends OpMode {
         RevHubOrientationOnRobot orientationOnRobot = new
                 RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));
+
+        // Initialize the servo picky uppy
+        servo_picky_uppy = hardwareMap.get(CRServo.class, "servo_picky_uppy");
     }
 
     @Override
@@ -70,14 +77,7 @@ public class TestStrafe extends OpMode {
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
         if (gamepad1.a) {
-            imu.resetYaw();
-            backLeftDrive.setPower(0.5);
-        } else if (gamepad1.x) {
-            backRightDrive.setPower(0.5);
-        } else if (gamepad1.y) {
-            frontRightDrive.setPower(0.5);
-        } else if (gamepad1.b) {
-            frontLeftDrive.setPower(0.5);
+            toggle_servo();
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)
@@ -141,5 +141,15 @@ public class TestStrafe extends OpMode {
         }
 
         return maximum;
+    }
+
+    private void toggle_servo() {
+        servo_picky_uppy.setDirection(CRServo.Direction.FORWARD);
+
+        if (servo_picky_uppy.getPower() == 0) {
+            servo_picky_uppy.setPower(1);
+        } else {
+            servo_picky_uppy.setPower(0);
+        }
     }
 }

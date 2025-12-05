@@ -21,7 +21,7 @@ public class TestStrafe extends OpMode {
     DcMotor frontRightDrive;
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
-
+    boolean wasPressed=false;
     // This declares the IMU needed to get the current direction the robot is facing
     IMU imu;
 
@@ -76,8 +76,12 @@ public class TestStrafe extends OpMode {
 
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
-        if (gamepad1.a) {
+        if (gamepad1.a && !wasPressed) {
             toggle_servo();
+            wasPressed=1;
+        }
+        if (!gamepad1.a) {
+            wasPressed=0;
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)

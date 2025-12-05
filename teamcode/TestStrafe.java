@@ -78,10 +78,10 @@ public class TestStrafe extends OpMode {
         // the robot is currently pointing
         if (gamepad1.a && !wasPressed) {
             toggle_servo();
-            wasPressed=1;
+            wasPressed=true;
         }
         if (!gamepad1.a) {
-            wasPressed=0;
+            wasPressed=false;
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)

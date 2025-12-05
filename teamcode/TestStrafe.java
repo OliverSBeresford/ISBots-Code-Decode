@@ -14,7 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
  * that the robot drives the direction you push the joystick regardless of the current orientation
  * of the robot.
 */
-@TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
+@TeleOp(name = "TestStrafe", group = "Robot")
 public class TestStrafe extends OpMode {
     // This declares the four motors needed
     DcMotor frontLeftDrive;

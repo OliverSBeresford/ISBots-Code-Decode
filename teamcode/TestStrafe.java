@@ -148,7 +148,7 @@ public class TestStrafe extends OpMode {
     }
 
     private void toggle_servo() {
-        servo_picky_uppy.setDirection(CRServo.Direction.FORWARD);
+        servo_picky_uppy.setDirection(CRServo.Direction.REVERSE);
 
         if (servo_picky_uppy.getPower() == 0) {
             servo_picky_uppy.setPower(1);

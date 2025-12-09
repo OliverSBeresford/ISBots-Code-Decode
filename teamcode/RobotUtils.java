@@ -140,4 +140,10 @@ public class RobotUtils {
             intake.setPower(0);
         }
     }
+
+    public void reset_imu_yaw() {
+        if (imu == null) return;
+
+        imu.resetYaw();
+    }
 }

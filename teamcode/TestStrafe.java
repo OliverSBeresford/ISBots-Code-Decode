@@ -37,9 +37,11 @@ public class TestStrafe extends OpMode {
         if (gamepad1.a && !wasPressed) {
             robot.toggle_servo();
             wasPressed=true;
-        }
-        if (!gamepad1.a) {
+        } else if (!gamepad1.a) {
             wasPressed=false;
+        }
+        if (gamepad1.b) {
+            robot.reset_imu_yaw();
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)

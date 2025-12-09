@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -91,6 +92,16 @@ public class ConceptAprilTag extends LinearOpMode {
             // to load a predefined calibration for your camera.
             .setLensIntrinsics(1432.032, 1432.032, 997.085, 1432.032)
             // ... these parameters are fx, fy, cx, cy.
+            .setCameraPose(
+                new Position(
+                    DistanceUnit.METER,
+                    -1, -0.075, 0.1655, 0
+                ),
+                new YawPitchRollAngles(
+                    AngleUnit.DEGREES,
+                    0, -90, 0
+                )
+            );
 
             .build();
 

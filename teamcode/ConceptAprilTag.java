@@ -99,9 +99,9 @@ public class ConceptAprilTag extends LinearOpMode {
                 ),
                 new YawPitchRollAngles(
                     AngleUnit.DEGREES,
-                    0, -90, 0
+                    0, -90, 0, 0
                 )
-            );
+            )
 
             .build();
 

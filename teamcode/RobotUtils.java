@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -12,19 +13,39 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class RobotUtils {
-    public DcMotor frontLeftDrive = null;
-    public DcMotor frontRightDrive = null;
-    public DcMotor backLeftDrive = null;
-    public DcMotor backRightDrive = null;
-    public DcMotor rightDrive = null;
-    public IMU imu = null;
-    public CRServo intake = null;
+    private enum LaunchState {
+        OFF,
+        SPINNING_UP,
+        READY,
+        FEEDING
+    }
+
+    // Constants
+    private static final double TOLERANCE = 5.0; // Tolerance for velocity checks in RPM
+    private final int MAX_VELOCITY = 6000; // Max velocity of the Yellow Jacket motors in RPM
+
+    // Variables to keep track of launch state
+    public LaunchState launchState = LaunchState.OFF;
+    private double targetVelocity = 0.0;
+    private boolean feedRequested = false;
+    private double feedingDuration = 2; // seconds
+    private double feedingStartTime = 0.0;
+    private double feedingStopTime = 0.0;
+
+    // Hardware components
+    private DcMotor frontLeftDrive = null;
+    private DcMotor frontRightDrive = null;
+    private DcMotor backLeftDrive = null;
+    private DcMotor backRightDrive = null;
+    private DcMotor rightDrive = null;
+    private IMU imu = null;
+    private CRServo intake = null;
+    private CRServo feed = null;
     public DcMotorEx leftLaunch = null;
-    public DcMotorEx rightLaunch = null;
+    private DcMotorEx rightLaunch = null;
     
     public RobotUtils(HardwareMap hardwareMap) {
         // Initialize all hardware components based on the provided parameters
-        // This is a placeholder for actual initialization code
         this.frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         this.frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         this.backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
@@ -33,23 +54,30 @@ public class RobotUtils {
         this.intake = hardwareMap.get(CRServo.class, "servo_picky_uppy");
         this.leftLaunch = hardwareMap.get(DcMotorEx.class, "left_launch");
         this.rightLaunch = hardwareMap.get(DcMotorEx.class, "right_launch");
+        this.feed = hardwareMap.get(CRServo.class, "servo_feeder");
 
         // We set the left motors in reverse which is needed for drive trains where the left
         // motors are opposite to the right ones.
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightLaunch.setDirection(DcMotor.Direction.REVERSE);
 
-        // This uses RUN_USING_ENCODER to be more accurate.   If you don't have the encoder
-        // wires, you should remove these
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // Drivetrain motors run without encoders
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Launch motors run using encoders to be able to control their speed
+        leftLaunch.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightLaunch.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         
         // Make sure the robot breaks when you let go of the controller
         frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftLaunch.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightLaunch.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Matches the orientation of our robot
         RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
@@ -145,5 +173,91 @@ public class RobotUtils {
         if (imu == null) return;
 
         imu.resetYaw();
+    }
+
+    public void set_launch_power(double power) {
+        if (leftLaunch == null || rightLaunch == null) return;
+
+        leftLaunch.setVelocity(power * MAX_VELOCITY * 2 * Math.PI / 60, AngleUnit.RADIANS);
+        rightLaunch.setVelocity(power * MAX_VELOCITY * 2 * Math.PI / 60, AngleUnit.RADIANS);
+    }
+
+    public void set_launch_velocity(double velocity) {
+        if (leftLaunch == null || rightLaunch == null) return;
+
+        leftLaunch.setVelocity(velocity, AngleUnit.RADIANS);
+        rightLaunch.setVelocity(velocity, AngleUnit.RADIANS);
+    }
+
+    public void feed_to_launch(double power) {
+        if (feed == null) return;
+
+        feed.setPower(power);
+    }
+
+    public void startShooter(double velocityRadPerSec) {
+        targetVelocity = velocityRadPerSec;
+        set_launch_velocity(velocityRadPerSec);
+        launchState = LaunchState.SPINNING_UP;
+    }
+
+    public void stopShooter() {
+        set_launch_power(0);
+        feed_to_launch(0);
+        launchState = LaunchState.OFF;
+    }
+
+    public void shootBallWhenReady() {
+        feedRequested = true;
+    }
+
+    public void updateShooter() {
+        double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
+
+        switch (launchState) {
+
+            case SPINNING_UP:
+                if (Math.abs(vel - targetVelocity) < TOLERANCE) {
+                    launchState = LaunchState.READY;
+                }
+                break;
+
+            case READY:
+                if (feedRequested) {
+                    // Start feeding ball to launcher
+                    feed_to_launch(1.0);
+                    launchState = LaunchState.FEEDING;
+
+                    // Start feeding timer
+                    feedingStartTime = System.currentTimeMillis() / 1000.0;
+                    feedingStopTime = feedingStartTime + feedingDuration;
+
+                    // Reset feed request
+                    feedRequested = false;
+                }
+                break;
+
+            case FEEDING:
+                if (System.currentTimeMillis() / 1000.0 >= feedingStopTime) {
+                    // Stop feeding
+                    feed_to_launch(0.0);
+                    launchState = LaunchState.OFF;
+                }
+                break;
+
+            case OFF:
+                if (vel > TOLERANCE) {
+                    set_launch_power(0.0);
+                }
+                break;
+
+            default:
+                // do nothing
+                break;
+        }
+    }
+
+    private boolean approximately_equal(double a, double b, double tolerance) {
+        return Math.abs(a - b) <= tolerance;
     }
 }

@@ -202,7 +202,7 @@ public class RobotUtils {
     }
 
     public void stopShooter() {
-        set_launch_power(0);
+        set_launch_velocity(0);
         feed_to_launch(0);
         launchState = LaunchState.OFF;
     }
@@ -247,7 +247,7 @@ public class RobotUtils {
 
             case OFF:
                 if (vel > TOLERANCE) {
-                    set_launch_power(0.0);
+                    set_launch_velocity(0.0);
                 }
                 break;
 

@@ -192,7 +192,7 @@ public class RobotUtils {
     public void feed_to_launch(double power) {
         if (feed == null) return;
 
-        feed.setPower(power);
+        feed.setPower(-power);
     }
 
     public void startShooter(double velocityRadPerSec) {

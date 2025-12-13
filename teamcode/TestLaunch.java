@@ -52,6 +52,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 @TeleOp
 public class TestLaunch extends OpMode {
     RobotUtils robot = null;
+    boolean prevAButtonState = false;
 
     @Override
     public void init() {
@@ -64,13 +65,15 @@ public class TestLaunch extends OpMode {
 
     @Override
     public void loop() {
-        // Spin up to a given velocity, then shoot
-        if (gamepad1.a) {
+        // Spin up to a given velocity, then shoot (only on button press, not held)
+        if (gamepad1.a && !prevAButtonState) {
             double rpm = 20;
             double rad = rpm * 2 * Math.PI / 60;
             robot.startShooter(rad);
             robot.shootBallWhenReady();
         }
+
+        prevAButtonState = gamepad1.a;
 
         // Stop shooter
         if (gamepad1.x) {

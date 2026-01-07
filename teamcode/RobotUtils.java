@@ -22,10 +22,10 @@ public class RobotUtils {
     }
 
     // Constants
-    private static final double TOLERANCE = 5.0; // Tolerance for velocity checks in RPM
+    private static final double TOLERANCE = 0.1; // Tolerance for velocity checks in RPM
     private final int MAX_VELOCITY = 6000; // Max velocity of the Yellow Jacket motors in RPM
 
-    private static final double FEED_DELAY = 2.0; // seconds to wait after Y before feeding
+    private static final double FEED_DELAY = 0.5; // seconds to wait after Y before feeding
     private double readyTime = 0.0;               // time when we entered READY with a feed request
 
     // Variables to keep track of launch state
@@ -43,7 +43,7 @@ public class RobotUtils {
     private DcMotor backRightDrive = null;
     private DcMotor rightDrive = null;
     private IMU imu = null;
-    private DcMotorEx intake = null;
+    private DcMotor intake = null;
     private CRServo feed = null;
     public DcMotorEx leftLaunch = null;
     private DcMotorEx rightLaunch = null;

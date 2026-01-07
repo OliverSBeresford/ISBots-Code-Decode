@@ -297,7 +297,7 @@ public class RobotUtils {
             .setCameraPose(
                 new Position(
                     DistanceUnit.METER,
-                    -1, -0.075, 0.1655, 0
+                    -0.05, 0.1535, 0.0508, 0
                 ),
                 new YawPitchRollAngles(
                     AngleUnit.DEGREES,

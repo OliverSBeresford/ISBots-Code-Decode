@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -24,6 +25,9 @@ public class RobotUtils {
     private static final double TOLERANCE = 5.0; // Tolerance for velocity checks in RPM
     private final int MAX_VELOCITY = 6000; // Max velocity of the Yellow Jacket motors in RPM
 
+    private static final double FEED_DELAY = 2.0; // seconds to wait after Y before feeding
+    private double readyTime = 0.0;               // time when we entered READY with a feed request
+
     // Variables to keep track of launch state
     public LaunchState launchState = LaunchState.OFF;
     private double targetVelocity = 0.0;
@@ -39,7 +43,7 @@ public class RobotUtils {
     private DcMotor backRightDrive = null;
     private DcMotor rightDrive = null;
     private IMU imu = null;
-    private CRServo intake = null;
+    private DcMotorEx intake = null;
     private CRServo feed = null;
     public DcMotorEx leftLaunch = null;
     private DcMotorEx rightLaunch = null;
@@ -51,7 +55,7 @@ public class RobotUtils {
         this.backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         this.backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
         this.imu = hardwareMap.get(IMU.class, "imu");
-        this.intake = hardwareMap.get(CRServo.class, "servo_picky_uppy");
+        this.intake = hardwareMap.get(DcMotorEx.class, "motor_picky_uppy");
         this.leftLaunch = hardwareMap.get(DcMotorEx.class, "left_launch");
         this.rightLaunch = hardwareMap.get(DcMotorEx.class, "right_launch");
         this.feed = hardwareMap.get(CRServo.class, "servo_feeder");
@@ -157,15 +161,15 @@ public class RobotUtils {
         return maximum;
     }
 
-    public void toggle_servo() {
+    public void toggle_motor() {
         if (intake == null) return;
 
-        intake.setDirection(CRServo.Direction.REVERSE);
+        intake.setDirection(DcMotor.Direction.REVERSE);
 
         if (intake.getPower() == 0) {
-            intake.setPower(1);
+            intake.setPower(1.0);
         } else {
-            intake.setPower(0);
+            intake.setPower(0.0);
         }
     }
 
@@ -224,23 +228,34 @@ public class RobotUtils {
 
             case READY:
                 if (feedRequested) {
-                    // Start feeding ball to launcher
-                    feed_to_launch(1.0);
+                    // remember the time we got the request
+                    readyTime = System.currentTimeMillis() / 1000.0;
+
+                    // move to FEEDING state, but we will WAIT 2 seconds before actually feeding
                     launchState = LaunchState.FEEDING;
 
-                    // Start feeding timer
-                    feedingStartTime = System.currentTimeMillis() / 1000.0;
-                    feedingStopTime = feedingStartTime + feedingDuration;
-
-                    // Reset feed request
+                    // reset request so it doesn't retrigger every loop
                     feedRequested = false;
+
+                    // reset feeding timer markers so FEEDING can start fresh
+                    feedingStartTime = 0.0;
+                    feedingStopTime = 0.0;
                 }
                 break;
 
             case FEEDING:
-                if (System.currentTimeMillis() / 1000.0 >= feedingStopTime) {
-                    // Stop feeding
-                    feed_to_launch(0.0);
+                double currentTime = System.currentTimeMillis() / 1000.0;
+
+                // Wait 2 seconds after READY before starting the feeder
+                if (feedingStartTime == 0.0 && currentTime >= readyTime + FEED_DELAY) {
+                    feed_to_launch(1.0);  // start feeder
+                    feedingStartTime = currentTime;
+                    feedingStopTime = feedingStartTime + feedingDuration;
+                }
+
+                // Once feeder has started, stop it after feedingDuration seconds
+                if (feedingStartTime != 0.0 && currentTime >= feedingStopTime) {
+                    feed_to_launch(0.0);  // stop feeder
                     launchState = LaunchState.OFF;
                 }
                 break;

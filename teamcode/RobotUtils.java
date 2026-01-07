@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import java.util.List;
-import org.firstinspires.ftc.robotcore.external.android.util.Size;
+import android.util.Size;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -105,7 +105,7 @@ public class RobotUtils {
         imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         // Initialize the AprilTag processor and vision portal
-        initAprilTag();
+        initAprilTag(hardwareMap);
     }
 
     // This function drives the robot field-relative
@@ -284,7 +284,7 @@ public class RobotUtils {
     /**
      * Initialize the AprilTag processor.
      */
-    private void initAprilTag() {
+    private void initAprilTag(HardwareMap hardwareMap) {
 
         // Create the AprilTag processor.
         aprilTag = new AprilTagProcessor.Builder()
@@ -326,7 +326,7 @@ public class RobotUtils {
     }
 
     // Add data about AprilTag detections.
-    private AprilTagPoseFtc get_apriltag_data(int apriltag_id) {
+    public AprilTagPoseFtc get_apriltag_data(int apriltag_id) {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         
@@ -336,5 +336,7 @@ public class RobotUtils {
                 return detection.ftcPose;
             }
         }
+
+        return null;
     }
 }

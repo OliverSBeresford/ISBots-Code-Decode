@@ -62,8 +62,8 @@ public class Rayanscode extends OpMode {
         // ===== SHOOTER =====
         // CHANGE THIS BUTTON if you don't want it to also toggle servo
         if (gamepad1.y) {   // use Y instead of A to avoid conflict
-            double rpm = 23;
-            double rad = rpm * 2 * Math.PI / 60;
+            double rpm = 600;
+            double rad = rpm * 2 * Math.PI / 6000;
             robot.startShooter(rad);
             robot.shootBallWhenReady();
         }
@@ -72,10 +72,19 @@ public class Rayanscode extends OpMode {
             robot.stopShooter();
         }
 
+        if (gamepad1.right_stick_button) {
+            robot.feed_to_launch(1);
+        }
+
+        if (gamepad1.left_stick_button) {
+            robot.feed_to_launch(0);
+        }
+
         robot.updateShooter();
 
         telemetry.addData("Shooter State", robot.launchState);
         telemetry.addData("Velocity", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Pos: ", robot.leftLaunch.getCurrentPosition());
         telemetry.update();
     }
 }

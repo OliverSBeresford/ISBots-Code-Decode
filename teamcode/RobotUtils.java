@@ -25,16 +25,12 @@ public class RobotUtils {
     private static final double TOLERANCE = 0.1; // Tolerance for velocity checks in RPM
     private final int MAX_VELOCITY = 6000; // Max velocity of the Yellow Jacket motors in RPM
 
-    private static final double FEED_DELAY = 0.5; // seconds to wait after Y before feeding
-    private double readyTime = 0.0;               // time when we entered READY with a feed request
-
     // Variables to keep track of launch state
     public LaunchState launchState = LaunchState.OFF;
     private double targetVelocity = 0.0;
     private boolean feedRequested = false;
     private double feedingDuration = 2; // seconds
-    private double feedingStartTime = 0.0;
-    private double feedingStopTime = 0.0;
+    public double feedingStartTime = 0.0;
 
     // Hardware components
     private DcMotor frontLeftDrive = null;
@@ -228,36 +224,27 @@ public class RobotUtils {
 
             case READY:
                 if (feedRequested) {
-                    // remember the time we got the request
-                    readyTime = System.currentTimeMillis() / 1000.0;
-
-                    // move to FEEDING state, but we will WAIT 2 seconds before actually feeding
+                    // move to FEEDING state
                     launchState = LaunchState.FEEDING;
+
+                    // Set feeding start time
+                    feedingStartTime = System.currentTimeMillis() / 1000.0;
+                    feed_to_launch(1);
 
                     // reset request so it doesn't retrigger every loop
                     feedRequested = false;
-
-                    // reset feeding timer markers so FEEDING can start fresh
-                    feedingStartTime = 0.0;
-                    feedingStopTime = 0.0;
                 }
                 break;
 
             case FEEDING:
                 double currentTime = System.currentTimeMillis() / 1000.0;
 
-                // Wait 2 seconds after READY before starting the feeder
-                if (feedingStartTime == 0.0 && currentTime >= readyTime + FEED_DELAY) {
-                    feed_to_launch(1.0);  // start feeder
-                    feedingStartTime = currentTime;
-                    feedingStopTime = feedingStartTime + feedingDuration;
-                }
-
-                // Once feeder has started, stop it after feedingDuration seconds
-                if (feedingStartTime != 0.0 && currentTime >= feedingStopTime) {
+                // Wait 2 seconds after starting feeding
+                if (currentTime >= feedingStartTime + feedingDuration) {
                     feed_to_launch(0.0);  // stop feeder
                     launchState = LaunchState.OFF;
                 }
+
                 break;
 
             case OFF:

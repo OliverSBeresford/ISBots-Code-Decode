@@ -8,6 +8,18 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
+
+import java.util.List;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
+
+import apple.laf.JRSUIConstants.Size;
+
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -43,6 +55,10 @@ public class RobotUtils {
     private CRServo feed = null;
     public DcMotorEx leftLaunch = null;
     private DcMotorEx rightLaunch = null;
+    
+    // Vision variables
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
     
     public RobotUtils(HardwareMap hardwareMap) {
         // Initialize all hardware components based on the provided parameters
@@ -88,6 +104,9 @@ public class RobotUtils {
         RevHubOrientationOnRobot orientationOnRobot = new
                 RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));
+
+        // Initialize the AprilTag processor and vision portal
+        initAprilTag();
     }
 
     // This function drives the robot field-relative
@@ -261,5 +280,62 @@ public class RobotUtils {
 
     private boolean approximately_equal(double a, double b, double tolerance) {
         return Math.abs(a - b) <= tolerance;
+    }
+
+    /**
+     * Initialize the AprilTag processor.
+     */
+    private void initAprilTag() {
+
+        // Create the AprilTag processor.
+        aprilTag = new AprilTagProcessor.Builder()
+            .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+            .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+            // == CAMERA CALIBRATION ==
+            .setLensIntrinsics(1432.032, 1432.032, 997.085, 1432.032)
+            // ... these parameters are fx, fy, cx, cy.
+            .setCameraPose(
+                new Position(
+                    DistanceUnit.METER,
+                    -1, -0.075, 0.1655, 0
+                ),
+                new YawPitchRollAngles(
+                    AngleUnit.DEGREES,
+                    0, -90, 0, 0
+                )
+            )
+
+            .build();
+
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+        builder.setCameraResolution(new Size(1920, 1080));
+
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        builder.enableLiveView(true);
+
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
+
+        // Set and enable the processor.
+        builder.addProcessor(aprilTag);
+
+        // Build the Vision Portal, using the above settings.
+        visionPortal = builder.build();
+    }
+
+    // Add data about AprilTag detections.
+    private AprilTagPoseFtc get_apriltag_data(int apriltag_id) {
+
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null && detection.id == apriltag_id) {
+                return detection.ftcPose;
+            }
+        }
     }
 }

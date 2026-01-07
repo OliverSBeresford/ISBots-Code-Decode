@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 
-@TeleOp(name="Rayanscode AutoAim (Blue Tag 20)")
-public class RayanscodeAutoAim extends OpMode {
+@TeleOp(name="AutoAim (Blue Tag 20)")
+public class AutoAim extends OpMode {
 
     private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
     private static final double FALLBACK_RPM = 3200;    // used if tag not visible
@@ -59,7 +59,7 @@ public class RayanscodeAutoAim extends OpMode {
         boolean yNow = gamepad1.y;
         if (yNow && !yWasPressed) {
             // Convert RPM -> rad/s correctly: rad/s = rpm * 2pi / 60
-            double targetRadPerSec = recommendedRpm * 2.0 * Math.PI / 60.0;
+            double targetRadPerSec = recommendedRpm * 2.0 * Math.PI / 6000.0;
 
             robot.startShooter(targetRadPerSec);
             robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds

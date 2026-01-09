@@ -99,9 +99,9 @@ public class AutoAim extends OpMode {
      */
     private double rpmFromRange(double inches) {
         // Example buckets; replace after testing.
-        if (inches < 24) return 2500;
-        if (inches < 36) return 3200;
-        if (inches < 48) return 3800;
-        return 4300;
+        if (inches < 106) return 2300;
+        if (inches < 119) return 2400;
+        if (inches < 145) return 2500;
+        return 3000;
     }
 }

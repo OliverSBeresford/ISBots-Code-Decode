@@ -4,8 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name="Rayanscode")
-public class Rayanscode extends OpMode {
+@TeleOp(name="TwoPlayers")
+public class TwoPlayers extends OpMode {
 
     private RobotUtils robot = null;
 
@@ -60,8 +60,7 @@ public class Rayanscode extends OpMode {
         if (gamepad2.y) {
             // NOTE: This is still 23 RPM (very slow). Increase if you want more speed.
             double rpm = 23;
-            double radPerSec = rpm * 2 * Math.PI / 60.0;
-            robot.startShooter(radPerSec);
+            robot.startShooter(rpm);
             robot.shootBallWhenReady();
         }
 
@@ -78,7 +77,7 @@ public class Rayanscode extends OpMode {
         telemetry.addData("Shooter State", robot.launchState);
 
         double velRad = robot.leftLaunch.getVelocity(AngleUnit.RADIANS);
-        double velRpm = velRad * 60.0 / (2.0 * Math.PI);
+        double velRpm = velRad * 6000.0 / (2.0 * Math.PI);
 
         telemetry.addData("Launcher Velocity (rad/s)", velRad);
         telemetry.addData("Launcher Velocity (RPM)", velRpm);

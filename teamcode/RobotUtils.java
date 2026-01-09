@@ -213,9 +213,9 @@ public class RobotUtils {
         feed.setPower(-power);
     }
 
-    public void startShooter(double velocityRadPerSec) {
-        targetVelocity = velocityRadPerSec;
-        set_launch_velocity(velocityRadPerSec);
+    public void startShooter(double velocityRPM) {
+        targetVelocity = velocityRPM * 2.0 * Math.PI / 6000.0;
+        set_launch_velocity(targetVelocity);
         launchState = LaunchState.SPINNING_UP;
     }
 

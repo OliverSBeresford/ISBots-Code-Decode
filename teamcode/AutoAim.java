@@ -58,10 +58,7 @@ public class AutoAim extends OpMode {
         // ===== SHOOT (TAP Y) =====
         boolean yNow = gamepad1.y;
         if (yNow && !yWasPressed) {
-            // Convert RPM -> rad/s correctly: rad/s = rpm * 2pi / 60
-            double targetRadPerSec = recommendedRpm * 2.0 * Math.PI / 6000.0;
-
-            robot.startShooter(targetRadPerSec);
+            robot.startShooter(recommendedRpm);
             robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
         }
         yWasPressed = yNow;
@@ -88,7 +85,7 @@ public class AutoAim extends OpMode {
 
         telemetry.addData("Recommended RPM", String.format("%.0f", recommendedRpm));
         telemetry.addData("Shooter State", robot.launchState);
-        telemetry.addData("Launcher vel (rad/s)", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Launcher vel (rad)", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
 
         telemetry.update();
     }

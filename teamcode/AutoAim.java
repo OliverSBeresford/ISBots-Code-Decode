@@ -94,8 +94,8 @@ public class AutoAim extends OpMode {
     }
 
     /**
-     * Placeholder distance->RPM mapping.
-     * You WILL tune these numbers by testing.
+     * Distance->RPM mapping.
+     * Needs more tuning.
      */
     private double rpmFromRange(double inches) {
         // Example buckets; replace after testing.

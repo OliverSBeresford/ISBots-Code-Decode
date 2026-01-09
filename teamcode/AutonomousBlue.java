@@ -23,14 +23,9 @@ public class AutonomousBlue extends OpMode {
 
     @Override
     public void loop() {
-    }
- // ===== SHOOT (TAP Y) =====
-        boolean yNow = gamepad1.y;
-        if (yNow && !yWasPressed) {
-            robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
-        }
-        yWasPressed = yNow;
+    // ===== SHOOT (TAP Y) =====
+        robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
         telemetry.addLine("Robot is shooting the 1st ball");
         telemetry.update();
-
+    }
 }

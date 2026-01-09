@@ -29,7 +29,8 @@ public class RobotUtils {
         OFF,
         SPINNING_UP,
         READY,
-        FEEDING
+        FEEDING,
+        ALIGNING
     }
 
     // Constants
@@ -58,6 +59,7 @@ public class RobotUtils {
     // Vision variables
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
+    int tagID = 20; // default tag ID for alignment
     
     public RobotUtils(HardwareMap hardwareMap) {
         // Initialize all hardware components based on the provided parameters
@@ -230,9 +232,21 @@ public class RobotUtils {
     }
 
     public void updateShooter() {
+        if (feedRequested) {
+            launchState = LaunchState.ALIGNING;
+        }
+
         double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
 
         switch (launchState) {
+            case ALIGNING:
+                if (isAligned(tagID)) {
+                    launchState = LaunchState.SPINNING_UP;
+                    feedRequested = false;
+                } else {
+                    alignToAprilTag(tagID);
+                }
+                break;
 
             case SPINNING_UP:
                 if (Math.abs(vel - targetVelocity) < TOLERANCE) {
@@ -338,5 +352,41 @@ public class RobotUtils {
         }
 
         return null;
+    }
+
+    public void alignToAprilTag(int tagID) {
+        AprilTagPoseFtc pose = get_apriltag_data(tagID);
+        if (pose == null) {
+            drive(0, 0, 0); // Stop if no tag
+            return;
+        }
+
+        // Errors
+        double strafeError  = pose.x;        // want x = 0
+        double yawError     = pose.yaw;      // want yaw = 0
+
+        // Proportional control
+        double right   = -strafeError * 0.05; // negative because positive x is to the right
+        double forward = 0;                    // no forward movement
+        double rotate  = -yawError * 0.01;
+
+        // Clamp power (very important)
+        forward = clamp(forward, -0.4, 0.4);
+        right   = clamp(right,   -0.4, 0.4);
+        rotate  = clamp(rotate,  -0.3, 0.3);
+
+        drive(forward, right, rotate);
+    }
+
+    public boolean isAligned(int tagID) {
+        AprilTagPoseFtc pose = get_apriltag_data(tagID);
+        if (pose == null) return false;
+
+        return Math.abs(pose.x) < 2.0 &&
+            Math.abs(pose.yaw) < 2.0;
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

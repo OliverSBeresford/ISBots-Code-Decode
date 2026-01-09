@@ -58,7 +58,8 @@ public class AutoAim extends OpMode {
         // ===== SHOOT (TAP Y) =====
         boolean yNow = gamepad1.y;
         if (yNow && !yWasPressed) {
-            robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
+            // Start a full auto-shot sequence: align -> set RPM -> shoot
+            robot.requestAutoShot(BLUE_BASKET_TAG_ID, recommendedRpm);
         }
         yWasPressed = yNow;
 

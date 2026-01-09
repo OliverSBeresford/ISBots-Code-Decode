@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -43,6 +47,10 @@ public class RobotUtils {
     private boolean feedRequested = false;
     private double feedingDuration = 2; // seconds
     public double feedingStartTime = 0.0;
+    // Auto-shot (AprilTag align -> spin -> feed) variables
+    private boolean autoShotActive = false;
+    private int autoShotTagId = 20;
+    private double autoShotRpm = 0.0;
 
     // Hardware components
     private DcMotor frontLeftDrive = null;
@@ -231,24 +239,47 @@ public class RobotUtils {
         feedRequested = true;
     }
 
+    public void requestAutoShot(int tagId, double rpm) {
+        autoShotActive = true;
+        autoShotTagId = tagId;
+        autoShotRpm = rpm;
+
+        // Kick the state machine into aligning immediately
+        launchState = LaunchState.ALIGNING;
+    }  
+
     public void updateShooter() {
-        if (feedRequested) {
-            launchState = LaunchState.ALIGNING;
-        }
+    double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
 
-        double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
+    switch (launchState) {
 
-        switch (launchState) {
-            case ALIGNING:
+        case ALIGNING:
+            // Override driving while aligning
+            if (isAligned(autoShotTagId)) {
+                // stop movement once aligned
+                drive(0, 0, 0);
+
+                // Start shooter at the RPM we computed from range
+                startShooter(autoShotRpm);   // <-- sets launchState = SPINNING_UP
+
+                // IMPORTANT: keep a request to feed once we reach speed
+                feedRequested = true;
+
+                // Note: startShooter already moved us to SPINNING_UP
+            } else {
+               
                 if (isAligned(tagID)) {
-                    launchState = LaunchState.SPINNING_UP;
-                    feedRequested = false;
-                } else {
-                    alignToAprilTag(tagID);
-                }
-                break;
+                // stop auto-driving once aligned
+                drive(0, 0, 0);
 
-            case SPINNING_UP:
+                // now go spin up (keep feedRequested true so we actually shoot later)
+                launchState = LaunchState.SPINNING_UP;
+            } else {
+                alignToAprilTag(tagID); // overrides driver while aligning
+            }
+            break;
+
+            }case SPINNING_UP:
                 if (Math.abs(vel - targetVelocity) < TOLERANCE) {
                     launchState = LaunchState.READY;
                 }

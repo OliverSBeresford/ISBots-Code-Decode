@@ -6,7 +6,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 
 @Autonomous(name="Autonomous (Blue Tag 20)")
-public class AutoAim extends OpMode {
+public class AutonomousBlue extends OpMode {
 
     private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
     private static final double FALLBACK_RPM = 3200;    // used if tag not visible

@@ -34,7 +34,8 @@ public class RobotUtils {
         SPINNING_UP,
         READY,
         FEEDING,
-        ALIGNING
+        ALIGNING,
+        REVERSING
     }
 
     // Constants
@@ -47,6 +48,7 @@ public class RobotUtils {
     private boolean feedRequested = false;
     private double feedingDuration = 2; // seconds
     public double feedingStartTime = 0.0;
+    public double reverseStartTime = 0.0;
     // Auto-shot (AprilTag align -> spin -> feed) variables
     private boolean autoShotActive = false;
     private int autoShotTagId = 20;
@@ -206,8 +208,8 @@ public class RobotUtils {
     public void set_launch_power(double power) {
         if (leftLaunch == null || rightLaunch == null) return;
 
-        leftLaunch.setVelocity(power * MAX_VELOCITY * 2 * Math.PI / 60, AngleUnit.RADIANS);
-        rightLaunch.setVelocity(power * MAX_VELOCITY * 2 * Math.PI / 60, AngleUnit.RADIANS);
+        leftLaunch.setPower(power);
+        rightLaunch.setPower(power);
     }
 
     public void set_launch_velocity(double velocity) {
@@ -225,8 +227,8 @@ public class RobotUtils {
 
     public void startShooter(double velocityRPM) {
         targetVelocity = velocityRPM * 2.0 * Math.PI / 6000.0;
-        set_launch_velocity(targetVelocity);
-        launchState = LaunchState.SPINNING_UP;
+        reverseStartTime = System.currentTimeMillis() / 1000;
+        launchState = LaunchState.REVERSING;
     }
 
     public void stopShooter() {
@@ -249,37 +251,35 @@ public class RobotUtils {
     }  
 
     public void updateShooter() {
-    double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
+        double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
 
-    switch (launchState) {
+        switch (launchState) {
+            case ALIGNING:
+                // Override driving while aligning
+                if (isAligned(autoShotTagId)) {
+                    // stop movement once aligned
+                    drive(0, 0, 0);
 
-        case ALIGNING:
-            // Override driving while aligning
-            if (isAligned(autoShotTagId)) {
-                // stop movement once aligned
-                drive(0, 0, 0);
+                    // Start shooter at the RPM we computed from range
+                    startShooter(autoShotRpm);   // <-- sets launchState = SPINNING_UP
 
-                // Start shooter at the RPM we computed from range
-                startShooter(autoShotRpm);   // <-- sets launchState = SPINNING_UP
+                    // IMPORTANT: keep a request to feed once we reach speed
+                    feedRequested = true;
 
-                // IMPORTANT: keep a request to feed once we reach speed
-                feedRequested = true;
+                    // Note: startShooter already moved us to SPINNING_UP
+                } else {
+                    alignToAprilTag(autoShotTagId); // overrides driver while aligning
+                }
+                break;
 
-                // Note: startShooter already moved us to SPINNING_UP
-            } else {
-               
-                if (isAligned(tagID)) {
-                // stop auto-driving once aligned
-                drive(0, 0, 0);
+            case REVERSING:
+                set_launch_power(-0.1);
+                if (reverseStartTime + 0.1 < System.currentTimeMillis() / 1000) {
+                    set_launch_velocity(targetVelocity);
+                    launchState = LaunchState.SPINNING_UP;
+                }
 
-                // now go spin up (keep feedRequested true so we actually shoot later)
-                launchState = LaunchState.SPINNING_UP;
-            } else {
-                alignToAprilTag(tagID); // overrides driver while aligning
-            }
-            break;
-
-            }case SPINNING_UP:
+            case SPINNING_UP:
                 if (Math.abs(vel - targetVelocity) < TOLERANCE) {
                     launchState = LaunchState.READY;
                 }
@@ -393,13 +393,13 @@ public class RobotUtils {
         }
 
         // Errors
-        double strafeError  = pose.x;        // want x = 0
+        double strafeError  = 0;       // Ignore strafe error for now
         double yawError     = pose.yaw;      // want yaw = 0
 
         // Proportional control
-        double right   = -strafeError * 0.05; // negative because positive x is to the right
+        double right   = strafeError * 0.05;
         double forward = 0;                    // no forward movement
-        double rotate  = -yawError * 0.01;
+        double rotate  = -yawError * 0.05;
 
         // Clamp power (very important)
         forward = clamp(forward, -0.4, 0.4);
@@ -411,10 +411,9 @@ public class RobotUtils {
 
     public boolean isAligned(int tagID) {
         AprilTagPoseFtc pose = get_apriltag_data(tagID);
-        if (pose == null) return false;
+        if (pose == null) return true;
 
-        return Math.abs(pose.x) < 2.0 &&
-            Math.abs(pose.yaw) < 2.0;
+        return Math.abs(pose.yaw) < 5.0; // only yaw for now;
     }
 
     private double clamp(double value, double min, double max) {

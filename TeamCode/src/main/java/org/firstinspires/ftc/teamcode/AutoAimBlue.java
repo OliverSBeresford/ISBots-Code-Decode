@@ -6,19 +6,17 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 
 @TeleOp(name="AutoAim (Blue Tag 20)")
-public class AutoAimBlue extends OpMode {
+public class AutoAimBlue extends RobotUtils {
 
     private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
-
-    private RobotUtils robot = null;
 
     private boolean intakeWasPressed = false; // debounce for A
     private boolean yWasPressed = false;      // tap-to-shoot for Y
 
     @Override
     public void init() {
-        robot = new RobotUtils(hardwareMap);
-        robot.setAprilTagID(BLUE_BASKET_TAG_ID);
+        startHardware();
+        setAprilTagID(BLUE_BASKET_TAG_ID);
         telemetry.addLine("Robot Ready.");
         telemetry.addLine("AutoAim: uses AprilTag ID 20 (blue basket).");
         telemetry.update();
@@ -29,18 +27,18 @@ public class AutoAimBlue extends OpMode {
 
         // ===== DRIVE / STRAFE =====
         if (gamepad1.b) {
-            robot.resetImuYaw();
+            resetImuYaw();
         }
 
         if (gamepad1.left_bumper) {
-            robot.drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         } else {
-            robot.driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
 
         // ===== INTAKE MOTOR TOGGLE (A) =====
         if (gamepad1.a && !intakeWasPressed) {
-            robot.toggleMotor();
+            toggleMotor();
             intakeWasPressed = true;
         } else if (!gamepad1.a) {
             intakeWasPressed = false;
@@ -50,21 +48,21 @@ public class AutoAimBlue extends OpMode {
         boolean yNow = gamepad1.y;
         if (yNow && !yWasPressed) {
             // Start a full auto-shot sequence: align -> set RPM -> shoot
-            robot.requestAutoShot();
+            requestAutoShot();
         }
         yWasPressed = yNow;
 
         // Stop shooter (X)
         if (gamepad1.x) {
-            robot.stopShooter();
+            stopShooter();
         }
 
         // Must be called every loop
-        robot.update();
+        update();
 
         // Get data for telemetry
-        AprilTagPoseFtc pose = robot.getApriltagData();
-        double recommendedRpm = robot.calculateRPM();
+        AprilTagPoseFtc pose = getApriltagData();
+        double recommendedRpm = calculateRPM();
         // ===== TELEMETRY =====
         telemetry.addData("Tag Seen?", (pose != null));
         telemetry.addData("Tag ID", BLUE_BASKET_TAG_ID);
@@ -78,9 +76,9 @@ public class AutoAimBlue extends OpMode {
         }
 
         telemetry.addData("Recommended RPM", String.format("%.0f", recommendedRpm));
-        telemetry.addData("Shooter State", robot.launchState);
-        telemetry.addData("Start, Current Time, Over", String.format("%f, %f, %b", robot.reverseStartTime, System.currentTimeMillis() / 1000.0, System.currentTimeMillis() / 1000.0 > robot.reverseStartTime + 0.1));
-        telemetry.addData("Launcher vel (rad)", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Shooter State", launchState);
+        telemetry.addData("Start, Current Time, Over", String.format("%f, %f, %b", reverseStartTime, System.currentTimeMillis() / 1000.0, System.currentTimeMillis() / 1000.0 > reverseStartTime + 0.1));
+        telemetry.addData("Launcher vel (rad)", leftLaunch.getVelocity(AngleUnit.RADIANS));
 
         telemetry.update();
     }

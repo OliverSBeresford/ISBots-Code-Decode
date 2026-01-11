@@ -10,8 +10,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 public class AutonomousRed extends AutonomousBoth {
     @Override
     public void init() {
-        robot = new RobotUtils(hardwareMap);
-        robot.setAprilTagID(RobotUtils.RED_TAG_ID);
+        startHardware();
+        setAprilTagID(RobotUtils.RED_TAG_ID);
         telemetry.addLine("Robot Ready.");
         telemetry.addLine("AutoAim: uses AprilTag ID 20 (blue basket).");
         telemetry.update();

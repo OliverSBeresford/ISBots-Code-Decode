@@ -6,6 +6,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,7 +26,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class RobotUtils {
+abstract public class RobotUtils extends OpMode {
     public enum LaunchState {
         OFF,
         SPINNING_UP,
@@ -55,7 +56,7 @@ public class RobotUtils {
     private double autoShotRpm = 0.0;
     private boolean autoShotRequested = false;
     private double FALLBACK_RPM = 2400.0;
-    private double REVERSE_DURATION = 1;
+    private double REVERSE_DURATION = 0.6;
 
     // Drive state
     public DriveState driveState = DriveState.STOPPED;
@@ -83,7 +84,7 @@ public class RobotUtils {
     public static final int RED_TAG_ID = 24;
     int tagID = 20; // default tag ID for alignment
 
-    public RobotUtils(HardwareMap hardwareMap) {
+    protected void startHardware() {
         // Initialize all hardware components based on the provided parameters
         this.frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         this.frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
@@ -525,15 +526,15 @@ public class RobotUtils {
      * Maps ranges: 106->2300, 119->2400, 145->2500, 150->3000
      **/
     public double rpmFromRange(double rangeIn) {
-        if (rangeIn <= 106) return 2300;
+        if (rangeIn <= 106) return 2400;
         if (rangeIn <= 119) {
-            return 2300 + (rangeIn - 106) / (119 - 106) * (2400 - 2300);
+            return 2400;
         }
         if (rangeIn <= 145) {
-            return 2400 + (rangeIn - 119) / (145 - 119) * (2500 - 2400);
+            return 2500;
         }
         if (rangeIn <= 150) {
-            return 2500 + (rangeIn - 145) / (150 - 145) * (3000 - 2500);
+            return 2600;
         }
         return 3000;
     }

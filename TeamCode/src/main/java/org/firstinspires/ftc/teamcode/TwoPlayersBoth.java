@@ -5,10 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 
-public abstract class TwoPlayersBoth extends OpMode {
-
-    protected RobotUtils robot = null;
-
+public abstract class TwoPlayersBoth extends RobotUtils {
     // gamepad2 A toggle debounce
     protected boolean intakeWasPressed = false;
 
@@ -26,13 +23,13 @@ public abstract class TwoPlayersBoth extends OpMode {
         telemetry.addLine("SHOOTER (GP2): Left trigger = near shot");
 
         if (gamepad1.b) {
-            robot.resetImuYaw();
+            resetImuYaw();
         }
 
         if (gamepad1.left_bumper) {
-            robot.drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         } else {
-            robot.driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
 
         // ==========================================
@@ -44,7 +41,7 @@ public abstract class TwoPlayersBoth extends OpMode {
 
         // Toggle intake motor on GP2 A (debounced)
         if (gamepad2.a && !intakeWasPressed) {
-            robot.toggleMotor();
+            toggleMotor();
             intakeWasPressed = true;
         } else if (!gamepad2.a) {
             intakeWasPressed = false;
@@ -53,44 +50,44 @@ public abstract class TwoPlayersBoth extends OpMode {
         // Shooter control on GP2
         if (gamepad2.y) {
             // NOTE: This is still 23 RPM (very slow). Increase if you want more speed
-            robot.requestAutoShot();
-            robot.shootBallWhenReady();
+            requestAutoShot();
+            shootBallWhenReady();
         }
 
         if (gamepad2.right_trigger > 0) {
-            robot.startShooter(3000);
-            robot.shootBallWhenReady();
+            startShooter(2525);
+            shootBallWhenReady();
         }
 
         if (gamepad2.left_trigger > 0) {
-            robot.startShooter(2500);
-            robot.shootBallWhenReady();
+            startShooter(2300);
+            shootBallWhenReady();
         }
 
         if (gamepad2.x) {
-            robot.stopShooter();
+            stopShooter();
         }
 
         // Must be called every loop
-        robot.update();
+        update();
 
         // =========================
         // TELEMETRY
         // =========================
-        telemetry.addData("Shooter State", robot.launchState);
+        telemetry.addData("Shooter State", launchState);
 
-        double velRad = robot.leftLaunch.getVelocity(AngleUnit.RADIANS);
+        double velRad = leftLaunch.getVelocity(AngleUnit.RADIANS);
         double velRpm = velRad * 6000.0 / (2.0 * Math.PI);
 
         telemetry.addData("Launcher Velocity (rad/s)", velRad);
         telemetry.addData("Launcher Velocity (RPM)", velRpm);
 
         // Get data for telemetry
-        AprilTagPoseFtc pose = robot.getApriltagData();
-        double recommendedRpm = robot.calculateRPM();
+        AprilTagPoseFtc pose = getApriltagData();
+        double recommendedRpm = calculateRPM();
         // ===== TELEMETRY =====
         telemetry.addData("Tag Seen?", (pose != null));
-        telemetry.addData("Tag ID", robot.tagID);
+        telemetry.addData("Tag ID", tagID);
 
         if (pose != null) {
             telemetry.addData("Range (in)", String.format("%.1f", pose.range));

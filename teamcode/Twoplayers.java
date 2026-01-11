@@ -32,7 +32,7 @@ public class TwoPlayers extends OpMode {
         telemetry.addLine("DRIVER (GP1): B = reset yaw");
 
         if (gamepad1.b) {
-            robot.reset_imu_yaw();
+            robot.resetImuYaw();
         }
 
         if (gamepad1.left_bumper) {
@@ -50,7 +50,7 @@ public class TwoPlayers extends OpMode {
 
         // Toggle intake motor on GP2 A (debounced)
         if (gamepad2.a && !intakeWasPressed) {
-            robot.toggle_motor();
+            robot.toggleMotor();
             intakeWasPressed = true;
         } else if (!gamepad2.a) {
             intakeWasPressed = false;
@@ -69,7 +69,7 @@ public class TwoPlayers extends OpMode {
         }
 
         // Must be called every loop
-        robot.updateShooter();
+        robot.update();
 
         // =========================
         // TELEMETRY

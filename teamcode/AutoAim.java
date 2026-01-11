@@ -9,7 +9,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 public class AutoAim extends OpMode {
 
     private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
-    private static final double FALLBACK_RPM = 3200;    // used if tag not visible
 
     private RobotUtils robot = null;
 
@@ -19,6 +18,7 @@ public class AutoAim extends OpMode {
     @Override
     public void init() {
         robot = new RobotUtils(hardwareMap);
+        robot.setAprilTagID(BLUE_BASKET_TAG_ID);
         telemetry.addLine("Robot Ready.");
         telemetry.addLine("AutoAim: uses AprilTag ID 20 (blue basket).");
         telemetry.update();
@@ -29,7 +29,7 @@ public class AutoAim extends OpMode {
 
         // ===== DRIVE / STRAFE =====
         if (gamepad1.b) {
-            robot.reset_imu_yaw();
+            robot.resetImuYaw();
         }
 
         if (gamepad1.left_bumper) {
@@ -40,26 +40,17 @@ public class AutoAim extends OpMode {
 
         // ===== INTAKE MOTOR TOGGLE (A) =====
         if (gamepad1.a && !intakeWasPressed) {
-            robot.toggle_motor();
+            robot.toggleMotor();
             intakeWasPressed = true;
         } else if (!gamepad1.a) {
             intakeWasPressed = false;
         }
 
-        // ===== APRILTAG RANGE (ALWAYS UPDATING) =====
-        AprilTagPoseFtc pose = robot.get_apriltag_data(BLUE_BASKET_TAG_ID);
-
-        double rangeIn = -1;
-        if (pose != null) rangeIn = pose.range;
-
-        // Compute a recommended RPM from range (placeholder mapping you will tune!)
-        double recommendedRpm = (pose != null) ? rpmFromRange(rangeIn) : FALLBACK_RPM;
-
         // ===== SHOOT (TAP Y) =====
         boolean yNow = gamepad1.y;
         if (yNow && !yWasPressed) {
             // Start a full auto-shot sequence: align -> set RPM -> shoot
-            robot.requestAutoShot(BLUE_BASKET_TAG_ID, recommendedRpm);
+            robot.requestAutoShot();
         }
         yWasPressed = yNow;
 
@@ -69,8 +60,11 @@ public class AutoAim extends OpMode {
         }
 
         // Must be called every loop
-        robot.updateShooter();
+        robot.update();
 
+        // Get data for telemetry
+        AprilTagPoseFtc pose = robot.getApriltagData();
+        double recommendedRpm = robot.calculateRPM();
         // ===== TELEMETRY =====
         telemetry.addData("Tag Seen?", (pose != null));
         telemetry.addData("Tag ID", BLUE_BASKET_TAG_ID);
@@ -88,17 +82,5 @@ public class AutoAim extends OpMode {
         telemetry.addData("Launcher vel (rad)", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
 
         telemetry.update();
-    }
-
-    /**
-     * Distance->RPM mapping.
-     * Needs more tuning.
-     */
-    private double rpmFromRange(double inches) {
-        // Buckets.
-        if (inches < 106) return 2300;
-        if (inches < 119) return 2400;
-        if (inches < 145) return 2500;
-        return 3000;
     }
 }

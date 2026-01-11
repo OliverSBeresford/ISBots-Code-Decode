@@ -1,15 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.CRServo;
-import org.firstinspires.ftc.teamcode.RobotUtils;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
  * that the robot drives the direction you push the joystick regardless of the current orientation
@@ -36,13 +29,13 @@ public class TestStrafe extends OpMode {
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
         if (gamepad1.a && !wasPressed) {
-            robot.toggle_servo();
+            robot.toggleMotor();
             wasPressed=true;
         } else if (!gamepad1.a) {
             wasPressed=false;
         }
         if (gamepad1.b) {
-            robot.reset_imu_yaw();
+            robot.resetImuYaw();
         }
         // If you press the left bumper, you get a drive from the point of view of the robot
         // (much like driving an RC vehicle)

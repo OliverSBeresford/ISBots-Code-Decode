@@ -5,12 +5,15 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import java.util.List;
+
 import android.util.Size;
 
 
@@ -23,7 +26,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class RobotUtils {
+abstract public class RobotUtils extends OpMode {
     public enum LaunchState {
         OFF,
         SPINNING_UP,
@@ -52,13 +55,16 @@ public class RobotUtils {
     // Auto-shot (AprilTag align -> spin -> feed) variables
     private double autoShotRpm = 0.0;
     private boolean autoShotRequested = false;
-    private double FALLBACK_RPM = 3000.0;
+    private double FALLBACK_RPM = 2400.0;
+    private double REVERSE_DURATION = 0.6;
 
     // Drive state
     public DriveState driveState = DriveState.STOPPED;
     private double targetYaw = 0.0;
     private double driveStartTime = 0.0;
     private double driveEndTime = 0.0;
+    private double imuOffset = 0.0;
+    private double driveTimePower = 0.0;
 
     // Hardware components
     private DcMotor frontLeftDrive = null;
@@ -74,11 +80,11 @@ public class RobotUtils {
     // Vision variables
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
-    private final int BLUE_TAG_ID = 20;
-    private final int RED_TAG_ID = 24;
+    public static final int BLUE_TAG_ID = 20;
+    public static final int RED_TAG_ID = 24;
     int tagID = 20; // default tag ID for alignment
 
-    public RobotUtils(HardwareMap hardwareMap) {
+    protected void startHardware() {
         // Initialize all hardware components based on the provided parameters
         this.frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         this.frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
@@ -140,7 +146,8 @@ public class RobotUtils {
         }
 
         // If any of the drive motors are not initialized, do nothing
-        else if (backLeftDrive == null || backRightDrive == null || frontLeftDrive == null || frontRightDrive == null) return;
+        else if (backLeftDrive == null || backRightDrive == null || frontLeftDrive == null || frontRightDrive == null)
+            return;
 
         // Convert direction being asked to drive to polar coordinates
         double theta = Math.atan2(forward, right);
@@ -148,7 +155,7 @@ public class RobotUtils {
 
         // Rotate angle by the angle the robot is pointing
         theta = AngleUnit.normalizeRadians(theta -
-                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+                (imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) + imuOffset));
 
         // Convert back to cartesian
         double newForward = r * Math.sin(theta);
@@ -160,7 +167,8 @@ public class RobotUtils {
 
     public void drive(double forward, double right, double rotate) {
         // If any of the drive motors are not initialized, do nothing
-        if (backLeftDrive == null || backRightDrive == null || frontLeftDrive == null || frontRightDrive == null) return;
+        if (backLeftDrive == null || backRightDrive == null || frontLeftDrive == null || frontRightDrive == null)
+            return;
 
         // Calculates the power needed for each wheel based on the amount of forward,
         // strafe right, and rotate
@@ -188,10 +196,10 @@ public class RobotUtils {
         backRightDrive.setPower(backRightPower);
     }
 
-    public void driveForSeconds(double seconds) {
+    public void driveForSeconds(double seconds, double power) {
         driveStartTime = System.currentTimeMillis() / 1000.0;
         driveEndTime = driveStartTime + seconds;
-
+        driveTimePower = power;
         driveState = DriveState.DRIVING_TIME;
     }
 
@@ -204,7 +212,8 @@ public class RobotUtils {
         turn = clamp(turn, -0.4, 0.4);
         drive(0, 0, turn);
 
-        if (Math.abs(error) < 3.0 && driveState == DriveState.TURNING) driveState = DriveState.STOPPED;
+        if (Math.abs(error) < 3.0 && driveState == DriveState.TURNING)
+            driveState = DriveState.STOPPED;
     }
 
     public void turnDegrees(double degrees) {
@@ -264,6 +273,12 @@ public class RobotUtils {
         rightLaunch.setVelocity(velocity, AngleUnit.RADIANS);
     }
 
+    public double getLaunchVelocity() {
+        if (leftLaunch == null || rightLaunch == null) return 0.0;
+
+        return leftLaunch.getVelocity(AngleUnit.RADIANS);
+    }
+
     public void feedToLaunch(double power) {
         if (feed == null) return;
 
@@ -304,7 +319,8 @@ public class RobotUtils {
         switch (launchState) {
             case REVERSING:
                 setLaunchPower(-0.1);
-                if (reverseStartTime + 0.1 < System.currentTimeMillis() / 1000.0) {
+                if (System.currentTimeMillis() / 1000.0 > reverseStartTime + REVERSE_DURATION) {
+                    setLaunchPower(0);
                     setLaunchVelocity(targetVelocity);
                     launchState = LaunchState.SPINNING_UP;
                 }
@@ -357,6 +373,8 @@ public class RobotUtils {
             case ALIGNING:
                 // Override driving while aligning
                 if (isAligned()) {
+                    driveState = DriveState.STOPPED;
+
                     // stop movement once aligned
                     drive(0, 0, 0);
 
@@ -377,23 +395,32 @@ public class RobotUtils {
 
             case TURNING:
                 turnToAngle(targetYaw);
+                break;
 
             case DRIVING_TIME:
                 if (System.currentTimeMillis() / 1000.0 > driveEndTime) {
                     driveState = DriveState.STOPPED;
                     return;
                 }
-                drive(0.4, 0.4, 0);
+                drive(driveTimePower, driveTimePower, 0);
+                break;
+
+            default:
+                break;
         }
     }
 
     public void update() {
         updateShooter();
         updateDrive();
+
+        telemetry.addData("Shooter state", launchState);
+        telemetry.addData("Drive state", driveState);
+        telemetry.update();
     }
 
     public boolean isShotCompleted() {
-        return launchState == LaunchState.OFF;
+        return launchState == LaunchState.OFF && getLaunchVelocity() < TOLERANCE;
     }
 
     public boolean isStopped() {
@@ -471,18 +498,18 @@ public class RobotUtils {
         }
 
         // Errors
-        double strafeError  = 0;       // Ignore strafe error for now
-        double bearingError     = pose.bearing;      // want bearing = 0
+        double strafeError = 0;       // Ignore strafe error for now
+        double bearingError = pose.bearing;      // want bearing = 0
 
         // Proportional control
-        double right   = strafeError * 0.05;
+        double right = strafeError * 0.05;
         double forward = 0;                    // no forward movement
-        double rotate  = -bearingError * 0.05;
+        double rotate = -bearingError * 0.05;
 
         // Clamp power (very important)
         forward = clamp(forward, -0.4, 0.4);
-        right   = clamp(right,   -0.4, 0.4);
-        rotate  = clamp(rotate,  -0.3, 0.3);
+        right = clamp(right, -0.4, 0.4);
+        rotate = clamp(rotate, -0.3, 0.3);
 
         drive(forward, right, rotate);
     }
@@ -508,17 +535,17 @@ public class RobotUtils {
      * Maps ranges: 106->2300, 119->2400, 145->2500, 150->3000
      **/
     public double rpmFromRange(double rangeIn) {
-        if (rangeIn <= 106) return 2300;
+        if (rangeIn <= 106) return 2400;
         if (rangeIn <= 119) {
-            return 2300 + (rangeIn - 106) / (119 - 106) * (2400 - 2300);
+            return 2350;
         }
         if (rangeIn <= 145) {
-            return 2400 + (rangeIn - 119) / (145 - 119) * (2500 - 2400);
+            return 2450;
         }
         if (rangeIn <= 150) {
-            return 2500 + (rangeIn - 145) / (150 - 145) * (3000 - 2500);
+            return 2550;
         }
-        return 3000;
+        return 2900;
     }
 
     private double clamp(double value, double min, double max) {

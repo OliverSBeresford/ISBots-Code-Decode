@@ -35,14 +35,12 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 
 @TeleOp
-public class TestLaunch extends OpMode {
-    RobotUtils robot = null;
+public class TestLaunch extends RobotUtils {
     boolean prevAButtonState = false;
 
     @Override
     public void init() {
-        robot = new RobotUtils(hardwareMap);
-
+        startHardware();
         /* Send telemetry message to signify robot waiting */
         telemetry.addLine("Robot Ready.");
         telemetry.update();
@@ -54,22 +52,22 @@ public class TestLaunch extends OpMode {
         if (gamepad1.a && !prevAButtonState) {
             double rpm = 20; //Change this value to modify the power of the shoot
             double rad = rpm * 2 * Math.PI / 60;
-            robot.startShooter(rad);
-            robot.shootBallWhenReady();
+            startShooter(rad);
+            shootBallWhenReady();
         }
 
         prevAButtonState = gamepad1.a;
 
         // Stop shooter
         if (gamepad1.x) {
-            robot.stopShooter();
+            stopShooter();
         }
 
         // Must be called every loop
-        robot.update();
+        update();
 
-        telemetry.addData("Shooter State", robot.launchState);
-        telemetry.addData("Velocity", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Shooter State", launchState);
+        telemetry.addData("Velocity", leftLaunch.getVelocity(AngleUnit.RADIANS));
         telemetry.update();
     }
 }

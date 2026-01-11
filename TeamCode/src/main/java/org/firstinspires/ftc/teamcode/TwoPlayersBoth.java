@@ -55,7 +55,7 @@ public abstract class TwoPlayersBoth extends RobotUtils {
         }
 
         if (gamepad2.right_trigger > 0) {
-            startShooter(2525);
+            startShooter(2500);
             shootBallWhenReady();
         }
 

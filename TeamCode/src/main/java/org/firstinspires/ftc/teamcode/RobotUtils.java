@@ -528,15 +528,15 @@ abstract public class RobotUtils extends OpMode {
     public double rpmFromRange(double rangeIn) {
         if (rangeIn <= 106) return 2400;
         if (rangeIn <= 119) {
-            return 2400;
+            return 2350;
         }
         if (rangeIn <= 145) {
-            return 2500;
+            return 2450;
         }
         if (rangeIn <= 150) {
-            return 2600;
+            return 2550;
         }
-        return 3000;
+        return 2900;
     }
 
     private double clamp(double value, double min, double max) {

@@ -240,6 +240,16 @@ abstract public class RobotUtils extends OpMode {
 
         return maximum;
     }
+    
+    public void toggleFeeder() {
+        if (feed == null) return;
+
+        if (feed.getPower() == 0) {
+            feed.setPower(1.0);
+        } else {
+            feed.setPower(0.0);
+        }
+    }
 
     public void toggleMotor() {
         if (intake == null) return;
@@ -395,6 +405,7 @@ abstract public class RobotUtils extends OpMode {
 
             case TURNING:
                 turnToAngle(targetYaw);
+                break;
 
             case DRIVING_TIME:
                 if (System.currentTimeMillis() / 1000.0 > driveEndTime) {
@@ -402,12 +413,20 @@ abstract public class RobotUtils extends OpMode {
                     return;
                 }
                 drive(driveTimePower, driveTimePower, 0);
+                break;
+
+            default:
+                break;
         }
     }
 
     public void update() {
         updateShooter();
         updateDrive();
+
+        telemetry.addData("Shooter state", launchState);
+        telemetry.addData("Drive state", driveState);
+        telemetry.update();
     }
 
     public boolean isShotCompleted() {

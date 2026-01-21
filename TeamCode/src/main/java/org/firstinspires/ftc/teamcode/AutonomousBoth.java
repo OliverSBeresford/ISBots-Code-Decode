@@ -8,8 +8,7 @@ abstract public class AutonomousBoth extends RobotUtils {
         SHOOT_FIRST_BALL,
         INTAKE_BALL,
         SHOOT_SECOND_BALL,
-        ADVANCE_TO_SHOOTING_ZONE,
-        TURN_BACK,
+        ADVANCE,
         DONE
     }
 
@@ -21,21 +20,6 @@ abstract public class AutonomousBoth extends RobotUtils {
     @Override
     public void loop() {
         switch (currentState) {
-            case ADVANCE_TO_SHOOTING_ZONE:
-                if (isShotCompleted()) {
-                    // Just drive for 2.5 seconds, we don't have encoders
-                    driveForSeconds(2.5, 0.4);
-                    currentState = State.DONE;
-                    break;
-                }
-
-            case TURN_BACK:
-                if (isStopped()) {
-                    turnDegrees(10);
-                    currentState = State.DONE;
-                }
-                break;
-
             case SHOOT_FIRST_BALL:
                 if (isStopped()) { // Aim at the blue basket tag
                     requestAutoShot();
@@ -61,9 +45,17 @@ abstract public class AutonomousBoth extends RobotUtils {
                 if (getRuntime() - intakeStartTime > INTAKE_DURATION) {
                     requestAutoShot();
                     toggleMotor();
-                    currentState = State.ADVANCE_TO_SHOOTING_ZONE;
+                    currentState = State.ADVANCE;
                 }
                 break;
+
+            case ADVANCE:
+                if (isShotCompleted()) {
+                    // Just drive for 2.5 seconds, we don't have encoders
+                    driveForSeconds(1, 0.4);
+                    currentState = State.DONE;
+                    break;
+                }
 
             case DONE:
                 telemetry.addLine("Autonomous complete.");

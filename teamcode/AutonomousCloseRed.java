@@ -13,7 +13,7 @@ public class AutonomousCloseRed extends AutonomousClose {
         startHardware();
         setAprilTagID(RobotUtils.RED_TAG_ID);
         telemetry.addLine("Robot Ready.");
-        telemetry.addLine("AutoAim: uses AprilTag ID 20 (blue basket).");
+        telemetry.addLine("AutoAim: uses AprilTag ID 24 (red basket).");
         telemetry.update();
     }
 }

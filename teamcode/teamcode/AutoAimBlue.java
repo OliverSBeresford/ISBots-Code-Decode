@@ -1,0 +1,85 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
+
+@TeleOp(name="AutoAim (Blue Tag 20)")
+public class AutoAimBlue extends RobotUtils {
+
+    private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
+
+    private boolean intakeWasPressed = false; // debounce for A
+    private boolean yWasPressed = false;      // tap-to-shoot for Y
+
+    @Override
+    public void init() {
+        startHardware();
+        setAprilTagID(BLUE_BASKET_TAG_ID);
+        telemetry.addLine("Robot Ready.");
+        telemetry.addLine("AutoAim: uses AprilTag ID 20 (blue basket).");
+        telemetry.update();
+    }
+
+    @Override
+    public void loop() {
+
+        // ===== DRIVE / STRAFE =====
+        if (gamepad1.b) {
+            resetImuYaw();
+        }
+
+        if (gamepad1.left_bumper) {
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        } else {
+            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        }
+
+        // ===== INTAKE MOTOR TOGGLE (A) =====
+        if (gamepad1.a && !intakeWasPressed) {
+            toggleMotor();
+            intakeWasPressed = true;
+        } else if (!gamepad1.a) {
+            intakeWasPressed = false;
+        }
+
+        // ===== SHOOT (TAP Y) =====
+        boolean yNow = gamepad1.y;
+        if (yNow && !yWasPressed) {
+            // Start a full auto-shot sequence: align -> set RPM -> shoot
+            requestAutoShot();
+        }
+        yWasPressed = yNow;
+
+        // Stop shooter (X)
+        if (gamepad1.x) {
+            stopShooter();
+        }
+
+        // Must be called every loop
+        update();
+
+        // Get data for telemetry
+        AprilTagPoseFtc pose = getApriltagData();
+        double recommendedRpm = calculateRPM();
+        // ===== TELEMETRY =====
+        telemetry.addData("Tag Seen?", (pose != null));
+        telemetry.addData("Tag ID", BLUE_BASKET_TAG_ID);
+
+        if (pose != null) {
+            telemetry.addData("Range (in)", String.format("%.1f", pose.range));
+            telemetry.addData("Bearing (deg)", String.format("%.1f", pose.bearing));
+            telemetry.addData("Elevation (deg)", String.format("%.1f", pose.elevation));
+        } else {
+            telemetry.addData("Range (in)", "N/A");
+        }
+
+        telemetry.addData("Recommended RPM", String.format("%.0f", recommendedRpm));
+        telemetry.addData("Shooter State", launchState);
+        telemetry.addData("Start, Current Time, Over", String.format("%f, %f, %b", reverseStartTime, System.currentTimeMillis() / 1000.0, System.currentTimeMillis() / 1000.0 > reverseStartTime + 0.1));
+        telemetry.addData("Launcher vel (rad)", leftLaunch.getVelocity(AngleUnit.RADIANS));
+
+        telemetry.update();
+    }
+}

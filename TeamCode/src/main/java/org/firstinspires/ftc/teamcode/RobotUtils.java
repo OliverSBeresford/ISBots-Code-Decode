@@ -100,6 +100,7 @@ abstract public class RobotUtils extends OpMode {
         // motors are opposite to the right ones.
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         rightLaunch.setDirection(DcMotor.Direction.REVERSE);
+        feed.setDirection(DcMotor.Direction.REVERSE);
 
         // Drivetrain motors run without encoders
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -292,7 +293,7 @@ abstract public class RobotUtils extends OpMode {
     public void feedToLaunch(double power) {
         if (feed == null) return;
 
-        feed.setPower(-power);
+        feed.setPower(power);
     }
 
     public void startShooter(double velocityRPM) {

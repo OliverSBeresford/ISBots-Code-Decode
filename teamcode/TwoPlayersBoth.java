@@ -53,14 +53,18 @@ public abstract class TwoPlayersBoth extends RobotUtils {
             requestAutoShot();
             shootBallWhenReady();
         }
-
+        
+        if (gamepad2.x) {
+            toggleMotorReverse();
+        }
+        
         if (gamepad2.right_trigger > 0) {
-            startShooter(2500);
+            startShooter(1500);
             shootBallWhenReady();
         }
 
         if (gamepad2.left_trigger > 0) {
-            startShooter(2300);
+            startShooter(2800);
             shootBallWhenReady();
         }
 

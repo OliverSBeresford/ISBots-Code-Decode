@@ -100,6 +100,7 @@ abstract public class RobotUtils extends OpMode {
         // motors are opposite to the right ones.
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         rightLaunch.setDirection(DcMotor.Direction.REVERSE);
+        feed.setDirection(DcMotor.Direction.REVERSE);
 
         // Drivetrain motors run without encoders
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -240,6 +241,16 @@ abstract public class RobotUtils extends OpMode {
 
         return maximum;
     }
+    
+    public void toggleFeeder() {
+        if (feed == null) return;
+
+        if (feed.getPower() == 0) {
+            feed.setPower(1.0);
+        } else {
+            feed.setPower(0.0);
+        }
+    }
 
     public void toggleMotor() {
         if (intake == null) return;
@@ -248,6 +259,17 @@ abstract public class RobotUtils extends OpMode {
 
         if (intake.getPower() == 0) {
             intake.setPower(1.0);
+        } else {
+            intake.setPower(0.0);
+        }
+    }
+
+    public void toggleMotorReverse() {
+        if (intake == null) return;
+
+        // Same toggle logic, opposite power
+        if (intake.getPower() == 0) {
+            intake.setPower(-1.0);
         } else {
             intake.setPower(0.0);
         }
@@ -282,7 +304,7 @@ abstract public class RobotUtils extends OpMode {
     public void feedToLaunch(double power) {
         if (feed == null) return;
 
-        feed.setPower(-power);
+        feed.setPower(power);
     }
 
     public void startShooter(double velocityRPM) {

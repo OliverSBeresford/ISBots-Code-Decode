@@ -47,7 +47,7 @@ abstract public class RobotUtils extends OpMode {
 
     // Variables to keep track of launch state
     public LaunchState launchState = LaunchState.OFF;
-    private double targetVelocity = 0.0;
+    protected double targetVelocity = 0.0;
     private boolean feedRequested = false;
     private final double FEEDING_DURATION = 2; // seconds
     public double feedingStartTime = 0.0;
@@ -55,7 +55,7 @@ abstract public class RobotUtils extends OpMode {
     // Auto-shot (AprilTag align -> spin -> feed) variables
     private double autoShotRpm = 0.0;
     private boolean autoShotRequested = false;
-    private double FALLBACK_RPM = 2400.0;
+    protected double FALLBACK_RPM = 1500.0;
     private double REVERSE_DURATION = 0.6;
 
     // Drive state
@@ -241,7 +241,7 @@ abstract public class RobotUtils extends OpMode {
 
         return maximum;
     }
-    
+
     public void toggleFeeder() {
         if (feed == null) return;
 
@@ -259,6 +259,17 @@ abstract public class RobotUtils extends OpMode {
 
         if (intake.getPower() == 0) {
             intake.setPower(1.0);
+        } else {
+            intake.setPower(0.0);
+        }
+    }
+
+    public void toggleMotorReverse() {
+        if (intake == null) return;
+
+        // Same toggle logic, opposite power
+        if (intake.getPower() == 0) {
+            intake.setPower(-1.0);
         } else {
             intake.setPower(0.0);
         }
@@ -298,11 +309,22 @@ abstract public class RobotUtils extends OpMode {
 
     public void startShooter(double velocityRPM) {
         targetVelocity = velocityRPM * 2.0 * Math.PI / 6000.0;
+        launchState = LaunchState.SPINNING_UP;
+    }
+
+    public void stopShooter() {
+        setLaunchVelocity(0);
+        feedToLaunch(0);
+        launchState = LaunchState.OFF;
+    }
+
+    public void startShooterReverse(double velocityRPM) {
+        targetVelocity = -velocityRPM * 2.0 * Math.PI / 6000.0;
         reverseStartTime = System.currentTimeMillis() / 1000.0;
         launchState = LaunchState.REVERSING;
     }
 
-    public void stopShooter() {
+    public void stopShooterReverse() {
         setLaunchVelocity(0);
         feedToLaunch(0);
         launchState = LaunchState.OFF;
@@ -333,12 +355,15 @@ abstract public class RobotUtils extends OpMode {
                 if (System.currentTimeMillis() / 1000.0 > reverseStartTime + REVERSE_DURATION) {
                     setLaunchPower(0);
                     setLaunchVelocity(targetVelocity);
-                    launchState = LaunchState.SPINNING_UP;
+                    launchState = LaunchState.READY;
                 }
+                break;
 
             case SPINNING_UP:
                 if (Math.abs(vel - targetVelocity) < TOLERANCE) {
                     launchState = LaunchState.READY;
+                } else {
+                    setLaunchVelocity(targetVelocity);
                 }
                 break;
 
@@ -413,7 +438,7 @@ abstract public class RobotUtils extends OpMode {
                     driveState = DriveState.STOPPED;
                     return;
                 }
-                drive(driveTimePower, driveTimePower, 0);
+                drive(driveTimePower, 0, 0);
                 break;
 
             default:
@@ -424,10 +449,6 @@ abstract public class RobotUtils extends OpMode {
     public void update() {
         updateShooter();
         updateDrive();
-
-        telemetry.addData("Shooter state", launchState);
-        telemetry.addData("Drive state", driveState);
-        telemetry.update();
     }
 
     public boolean isShotCompleted() {

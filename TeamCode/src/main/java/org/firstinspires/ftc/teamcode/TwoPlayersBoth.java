@@ -54,18 +54,26 @@ public abstract class TwoPlayersBoth extends RobotUtils {
             shootBallWhenReady();
         }
 
+        if (gamepad2.x) {
+            toggleMotorReverse();
+        }
+
         if (gamepad2.right_trigger > 0) {
-            startShooter(2500);
+            startShooter(1500);
             shootBallWhenReady();
         }
 
         if (gamepad2.left_trigger > 0) {
-            startShooter(2300);
+            startShooter(2800);
             shootBallWhenReady();
         }
 
         if (gamepad2.x) {
             stopShooter();
+        }
+
+        if (gamepad2.dpad_up) {
+            startShooterReverse(1500);
         }
 
         // Must be called every loop
@@ -75,6 +83,7 @@ public abstract class TwoPlayersBoth extends RobotUtils {
         // TELEMETRY
         // =========================
         telemetry.addData("Shooter State", launchState);
+        telemetry.addData("Target velocity", targetVelocity);
 
         double velRad = leftLaunch.getVelocity(AngleUnit.RADIANS);
         double velRpm = velRad * 6000.0 / (2.0 * Math.PI);
@@ -86,18 +95,16 @@ public abstract class TwoPlayersBoth extends RobotUtils {
         AprilTagPoseFtc pose = getApriltagData();
         double recommendedRpm = calculateRPM();
         // ===== TELEMETRY =====
-        telemetry.addData("Tag Seen?", (pose != null));
-        telemetry.addData("Tag ID", tagID);
+            telemetry.addData("Tag Seen?", (pose != null));
+            telemetry.addData("Tag ID", tagID);
 
-        if (pose != null) {
+            if (pose != null) {
             telemetry.addData("Range (in)", String.format("%.1f", pose.range));
         } else {
             telemetry.addData("Range (in)", "N/A");
         }
 
         telemetry.addData("Recommended RPM", String.format("%.0f", recommendedRpm));
-        telemetry.update();
-
         telemetry.update();
     }
 }

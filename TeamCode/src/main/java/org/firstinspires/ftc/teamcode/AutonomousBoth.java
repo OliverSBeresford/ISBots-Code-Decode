@@ -22,7 +22,9 @@ abstract public class AutonomousBoth extends RobotUtils {
         switch (currentState) {
             case SHOOT_FIRST_BALL:
                 if (isStopped()) { // Aim at the blue basket tag
-                    requestAutoShot();
+                    // requestAutoShot();
+                    startShooter(3000);
+                    shootBallWhenReady();
                     currentState = State.INTAKE_BALL;
                 }
                 break;
@@ -43,7 +45,9 @@ abstract public class AutonomousBoth extends RobotUtils {
 
             case SHOOT_SECOND_BALL:
                 if (getRuntime() - intakeStartTime > INTAKE_DURATION) {
-                    requestAutoShot();
+                    // requestAutoShot();
+                    startShooter(3000);
+                    shootBallWhenReady();
                     toggleMotor();
                     currentState = State.ADVANCE;
                 }

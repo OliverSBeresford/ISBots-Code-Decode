@@ -394,12 +394,12 @@ public class RobotUtils {
 
         // Errors
         double strafeError  = 0;       // Ignore strafe error for now
-        double yawError     = pose.yaw;      // want yaw = 0
+        double bearingError     = pose.bearing;      // want bearing = 0
 
         // Proportional control
         double right   = strafeError * 0.05;
         double forward = 0;                    // no forward movement
-        double rotate  = -yawError * 0.05;
+        double rotate  = -bearingError * 0.05;
 
         // Clamp power (very important)
         forward = clamp(forward, -0.4, 0.4);
@@ -413,7 +413,7 @@ public class RobotUtils {
         AprilTagPoseFtc pose = get_apriltag_data(tagID);
         if (pose == null) return true;
 
-        return Math.abs(pose.yaw) < 5.0; // only yaw for now;
+        return Math.abs(pose.bearing) < 5.0; // only bearing for now;
     }
 
     private double clamp(double value, double min, double max) {

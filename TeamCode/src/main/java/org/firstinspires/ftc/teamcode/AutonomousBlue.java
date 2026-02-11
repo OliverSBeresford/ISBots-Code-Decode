@@ -13,10 +13,9 @@ public class AutonomousBlue extends OpMode {
     }
 
     private static final int BLUE_BASKET_TAG_ID = 20;   // change to 24 for red
-    private static final double FALLBACK_RPM = 3200;    // used if tag not visible
 
     private double intakeStartTime = 0.0;
-    private double intakeDuration = 2.0; // seconds
+    private final double INTAKE_DURATION = 2.0; // seconds
     private RobotUtils robot = null;
 
     private State currentState = State.SHOOT_FIRST_BALL;
@@ -35,45 +34,36 @@ public class AutonomousBlue extends OpMode {
         switch (currentState) {
             case SHOOT_FIRST_BALL:
                 // Aim at the blue basket tag
-                robot.requestAutoShot(FALLBACK_RPM);
+                robot.requestAutoShot();
                 currentState = State.INTAKE_BALL;
                 break;
 
             case INTAKE_BALL:
                 if (robot.isShotCompleted()) {
+                    // Records the time you start intaking the ball
                     intakeStartTime = getRuntime();
-                    robot.startIntakeMotor();
+
+                    // Start the intake wheel
+                    robot.toggleMotor();
                     telemetry.addLine("Robot is intaking the ball");
-                    telemetry.update();
+
+                    // Update robot state
                     currentState = State.INTAKE_BALL;
                 }
-                intakeBall();
                 currentState = State.SHOOT_SECOND_BALL;
                 break;
 
             case SHOOT_SECOND_BALL:
-                shootSecondBall();
-                currentState = State.DONE;
+                if (getRuntime() - intakeStartTime > INTAKE_DURATION) {
+                    robot.requestAutoShot();
+                    currentState = State.DONE;
+                }
                 break;
 
             case DONE:
                 telemetry.addLine("Autonomous complete.");
-                telemetry.update();
                 break;
         }
-        // ===== SHOOT (TAP Y) =====
-        robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
-        telemetry.addLine("Robot is shooting the 1st ball");
-        telemetry.update();
-        
-        robot.toggle_motor();
-        
-        intakeWasPressed = true;
-        telemetry.addLine("Robot is reloading");
-        telemetry.update();
-
-        robot.shootBallWhenReady(); // your RobotUtils will feed when ready for 2 seconds
-        telemetry.addLine("Robot is shooting the 2nd ball");
         telemetry.update();
     }
 }

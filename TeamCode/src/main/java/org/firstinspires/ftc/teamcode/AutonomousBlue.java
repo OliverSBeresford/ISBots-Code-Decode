@@ -48,9 +48,8 @@ public class AutonomousBlue extends OpMode {
                     telemetry.addLine("Robot is intaking the ball");
 
                     // Update robot state
-                    currentState = State.INTAKE_BALL;
+                    currentState = State.SHOOT_SECOND_BALL;
                 }
-                currentState = State.SHOOT_SECOND_BALL;
                 break;
 
             case SHOOT_SECOND_BALL:

@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 @Autonomous(name="Autonomous (Blue Tag 20)")
 public class AutonomousBlue extends OpMode {
     private enum State {
+        ADVANCE_TO_SHOOTING_ZONE,
+        TURN_TO_GOAL,
         SHOOT_FIRST_BALL,
         INTAKE_BALL,
         SHOOT_SECOND_BALL,
@@ -32,10 +34,24 @@ public class AutonomousBlue extends OpMode {
     @Override
     public void loop() {
         switch (currentState) {
+            case ADVANCE_TO_SHOOTING_ZONE:
+                // Just drive for 2.5 seconds, we don't have encoders
+                robot.driveForSeconds(2.5);
+                currentState = State.TURN_TO_GOAL;
+                break;
+
+            case TURN_TO_GOAL:
+                if (robot.isStopped()) {
+                    robot.turnToGoal();
+                    currentState = State.SHOOT_FIRST_BALL;
+                }
+                break;
+
             case SHOOT_FIRST_BALL:
-                // Aim at the blue basket tag
-                robot.requestAutoShot();
-                currentState = State.INTAKE_BALL;
+                if (robot.isStopped()) { // Aim at the blue basket tag
+                    robot.requestAutoShot();
+                    currentState = State.INTAKE_BALL;
+                }
                 break;
 
             case INTAKE_BALL:

@@ -34,7 +34,7 @@ public class RobotUtils {
 
     public enum DriveState {
         TURNING,
-        DRIVING,
+        DRIVING_TIME,
         ALIGNING,
         STOPPED
     }
@@ -57,6 +57,8 @@ public class RobotUtils {
     // Drive state
     public DriveState driveState = DriveState.STOPPED;
     private double targetYaw = 0.0;
+    private double driveStartTime = 0.0;
+    private double driveEndTime = 0.0;
 
     // Hardware components
     private DcMotor frontLeftDrive = null;
@@ -72,6 +74,8 @@ public class RobotUtils {
     // Vision variables
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
+    private final int BLUE_TAG_ID = 20;
+    private final int RED_TAG_ID = 24;
     int tagID = 20; // default tag ID for alignment
 
     public RobotUtils(HardwareMap hardwareMap) {
@@ -184,6 +188,13 @@ public class RobotUtils {
         backRightDrive.setPower(backRightPower);
     }
 
+    public void driveForSeconds(double seconds) {
+        driveStartTime = System.currentTimeMillis() / 1000.0;
+        driveEndTime = driveStartTime + seconds;
+
+        driveState = DriveState.DRIVING_TIME;
+    }
+
     public void turnToAngle(double targetAngle) {
         double kP = 0.01;
 
@@ -200,6 +211,15 @@ public class RobotUtils {
         targetYaw = imu.getRobotYawPitchRollAngles().getYaw() + degrees;
 
         driveState = DriveState.TURNING;
+    }
+
+    public void turnToGoal() {
+        // Turn to face one the goals, starting facing toward the wall with the artifact info
+        if (tagID == BLUE_TAG_ID) {
+            turnDegrees(45);
+        } else if (tagID == RED_TAG_ID) {
+            turnDegrees(-45);
+        }
     }
 
     public double maxMagnitude(double... numbers) {
@@ -357,6 +377,13 @@ public class RobotUtils {
 
             case TURNING:
                 turnToAngle(targetYaw);
+
+            case DRIVING_TIME:
+                if (System.currentTimeMillis() / 1000.0 > driveEndTime) {
+                    driveState = DriveState.STOPPED;
+                    return;
+                }
+                drive(0.4, 0.4, 0);
         }
     }
 
@@ -367,6 +394,10 @@ public class RobotUtils {
 
     public boolean isShotCompleted() {
         return launchState == LaunchState.OFF;
+    }
+
+    public boolean isStopped() {
+        return driveState == DriveState.STOPPED;
     }
 
     private boolean approximately_equal(double a, double b, double tolerance) {

@@ -7,16 +7,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import java.util.List;
 import android.util.Size;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -26,51 +23,61 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
 public class RobotUtils {
-    private enum LaunchState {
+    public enum LaunchState {
         OFF,
         SPINNING_UP,
         READY,
         FEEDING,
-        ALIGNING,
         REVERSING
+    }
+
+    public enum DriveState {
+        TURNING,
+        DRIVING_TIME,
+        ALIGNING,
+        STOPPED
     }
 
     // Constants
     private static final double TOLERANCE = 0.1; // Tolerance for velocity checks in RPM
-    private final int MAX_VELOCITY = 6000; // Max velocity of the Yellow Jacket motors in RPM
 
     // Variables to keep track of launch state
     public LaunchState launchState = LaunchState.OFF;
     private double targetVelocity = 0.0;
     private boolean feedRequested = false;
-    private double feedingDuration = 2; // seconds
+    private final double FEEDING_DURATION = 2; // seconds
     public double feedingStartTime = 0.0;
     public double reverseStartTime = 0.0;
     // Auto-shot (AprilTag align -> spin -> feed) variables
-    private boolean autoShotActive = false;
-    private int autoShotTagId = 20;
     private double autoShotRpm = 0.0;
+    private boolean autoShotRequested = false;
+    private double FALLBACK_RPM = 3000.0;
+
+    // Drive state
+    public DriveState driveState = DriveState.STOPPED;
+    private double targetYaw = 0.0;
+    private double driveStartTime = 0.0;
+    private double driveEndTime = 0.0;
 
     // Hardware components
     private DcMotor frontLeftDrive = null;
     private DcMotor frontRightDrive = null;
     private DcMotor backLeftDrive = null;
     private DcMotor backRightDrive = null;
-    private DcMotor rightDrive = null;
     private IMU imu = null;
     private DcMotor intake = null;
     private CRServo feed = null;
     public DcMotorEx leftLaunch = null;
     private DcMotorEx rightLaunch = null;
-    
+
     // Vision variables
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
+    private final int BLUE_TAG_ID = 20;
+    private final int RED_TAG_ID = 24;
     int tagID = 20; // default tag ID for alignment
-    
+
     public RobotUtils(HardwareMap hardwareMap) {
         // Initialize all hardware components based on the provided parameters
         this.frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
@@ -97,7 +104,7 @@ public class RobotUtils {
         // Launch motors run using encoders to be able to control their speed
         leftLaunch.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightLaunch.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        
+
         // Make sure the robot breaks when you let go of the controller
         frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -118,6 +125,10 @@ public class RobotUtils {
 
         // Initialize the AprilTag processor and vision portal
         initAprilTag(hardwareMap);
+    }
+
+    public void setAprilTagID(int id) {
+        tagID = id;
     }
 
     // This function drives the robot field-relative
@@ -160,10 +171,10 @@ public class RobotUtils {
 
 
         // Normalize the wheel powers if any exceeds 1.0
-        double powers[] = {frontLeftPower, frontRightPower, backRightPower, backLeftPower};
-        if (max_magnitude(powers) > 1.0) {
+        double[] powers = {frontLeftPower, frontRightPower, backRightPower, backLeftPower};
+        if (maxMagnitude(powers) > 1.0) {
             // Normalize the powers so no wheel power exceeds 1.0
-            double maxPower = max_magnitude(powers);
+            double maxPower = maxMagnitude(powers);
             frontLeftPower /= maxPower;
             frontRightPower /= maxPower;
             backRightPower /= maxPower;
@@ -177,7 +188,41 @@ public class RobotUtils {
         backRightDrive.setPower(backRightPower);
     }
 
-    public double max_magnitude(double... numbers) {
+    public void driveForSeconds(double seconds) {
+        driveStartTime = System.currentTimeMillis() / 1000.0;
+        driveEndTime = driveStartTime + seconds;
+
+        driveState = DriveState.DRIVING_TIME;
+    }
+
+    public void turnToAngle(double targetAngle) {
+        double kP = 0.01;
+
+        double error = targetAngle - imu.getRobotYawPitchRollAngles().getYaw();
+        double turn = error * kP;
+
+        turn = clamp(turn, -0.4, 0.4);
+        drive(0, 0, turn);
+
+        if (Math.abs(error) < 3.0 && driveState == DriveState.TURNING) driveState = DriveState.STOPPED;
+    }
+
+    public void turnDegrees(double degrees) {
+        targetYaw = imu.getRobotYawPitchRollAngles().getYaw() + degrees;
+
+        driveState = DriveState.TURNING;
+    }
+
+    public void turnToGoal() {
+        // Turn to face one the goals, starting facing toward the wall with the artifact info
+        if (tagID == BLUE_TAG_ID) {
+            turnDegrees(45);
+        } else if (tagID == RED_TAG_ID) {
+            turnDegrees(-45);
+        }
+    }
+
+    public double maxMagnitude(double... numbers) {
         double maximum = 0;
 
         for (double number : numbers) {
@@ -187,7 +232,7 @@ public class RobotUtils {
         return maximum;
     }
 
-    public void toggle_motor() {
+    public void toggleMotor() {
         if (intake == null) return;
 
         intake.setDirection(DcMotor.Direction.REVERSE);
@@ -199,27 +244,27 @@ public class RobotUtils {
         }
     }
 
-    public void reset_imu_yaw() {
+    public void resetImuYaw() {
         if (imu == null) return;
 
         imu.resetYaw();
     }
 
-    public void set_launch_power(double power) {
+    public void setLaunchPower(double power) {
         if (leftLaunch == null || rightLaunch == null) return;
 
         leftLaunch.setPower(power);
         rightLaunch.setPower(power);
     }
 
-    public void set_launch_velocity(double velocity) {
+    public void setLaunchVelocity(double velocity) {
         if (leftLaunch == null || rightLaunch == null) return;
 
         leftLaunch.setVelocity(velocity, AngleUnit.RADIANS);
         rightLaunch.setVelocity(velocity, AngleUnit.RADIANS);
     }
 
-    public void feed_to_launch(double power) {
+    public void feedToLaunch(double power) {
         if (feed == null) return;
 
         feed.setPower(-power);
@@ -227,13 +272,13 @@ public class RobotUtils {
 
     public void startShooter(double velocityRPM) {
         targetVelocity = velocityRPM * 2.0 * Math.PI / 6000.0;
-        reverseStartTime = System.currentTimeMillis() / 1000;
+        reverseStartTime = System.currentTimeMillis() / 1000.0;
         launchState = LaunchState.REVERSING;
     }
 
     public void stopShooter() {
-        set_launch_velocity(0);
-        feed_to_launch(0);
+        setLaunchVelocity(0);
+        feedToLaunch(0);
         launchState = LaunchState.OFF;
     }
 
@@ -241,41 +286,26 @@ public class RobotUtils {
         feedRequested = true;
     }
 
-    public void requestAutoShot(int tagId, double rpm) {
-        autoShotActive = true;
-        autoShotTagId = tagId;
-        autoShotRpm = rpm;
+    public void requestAutoShot() {
+        // Calculate recommended RPM based on current range to tag
+        autoShotRpm = calculateRPM();
+        // Use the provided fallback RPM if we can't see the tag
+        if (autoShotRpm == 0.0) autoShotRpm = FALLBACK_RPM;
 
         // Kick the state machine into aligning immediately
-        launchState = LaunchState.ALIGNING;
-    }  
+        driveState = DriveState.ALIGNING;
 
-    public void updateShooter() {
+        autoShotRequested = true;
+    }
+
+    private void updateShooter() {
         double vel = leftLaunch.getVelocity(AngleUnit.RADIANS);
 
         switch (launchState) {
-            case ALIGNING:
-                // Override driving while aligning
-                if (isAligned(autoShotTagId)) {
-                    // stop movement once aligned
-                    drive(0, 0, 0);
-
-                    // Start shooter at the RPM we computed from range
-                    startShooter(autoShotRpm);   // <-- sets launchState = SPINNING_UP
-
-                    // IMPORTANT: keep a request to feed once we reach speed
-                    feedRequested = true;
-
-                    // Note: startShooter already moved us to SPINNING_UP
-                } else {
-                    alignToAprilTag(autoShotTagId); // overrides driver while aligning
-                }
-                break;
-
             case REVERSING:
-                set_launch_power(-0.1);
-                if (reverseStartTime + 0.1 < System.currentTimeMillis() / 1000) {
-                    set_launch_velocity(targetVelocity);
+                setLaunchPower(-0.1);
+                if (reverseStartTime + 0.1 < System.currentTimeMillis() / 1000.0) {
+                    setLaunchVelocity(targetVelocity);
                     launchState = LaunchState.SPINNING_UP;
                 }
 
@@ -292,7 +322,7 @@ public class RobotUtils {
 
                     // Set feeding start time
                     feedingStartTime = System.currentTimeMillis() / 1000.0;
-                    feed_to_launch(1);
+                    feedToLaunch(1);
 
                     // reset request so it doesn't retrigger every loop
                     feedRequested = false;
@@ -303,8 +333,8 @@ public class RobotUtils {
                 double currentTime = System.currentTimeMillis() / 1000.0;
 
                 // Wait 2 seconds after starting feeding
-                if (currentTime >= feedingStartTime + feedingDuration) {
-                    feed_to_launch(0.0);  // stop feeder
+                if (currentTime >= feedingStartTime + FEEDING_DURATION) {
+                    feedToLaunch(0.0);  // stop feeder
                     launchState = LaunchState.OFF;
                 }
 
@@ -312,7 +342,7 @@ public class RobotUtils {
 
             case OFF:
                 if (vel > TOLERANCE) {
-                    set_launch_velocity(0.0);
+                    setLaunchVelocity(0.0);
                 }
                 break;
 
@@ -320,6 +350,54 @@ public class RobotUtils {
                 // do nothing
                 break;
         }
+    }
+
+    private void updateDrive() {
+        switch (driveState) {
+            case ALIGNING:
+                // Override driving while aligning
+                if (isAligned()) {
+                    // stop movement once aligned
+                    drive(0, 0, 0);
+
+                    // Don't start the shooter if they didn't request to shoot
+                    if (!autoShotRequested) return;
+
+                    // Start shooter at the RPM we computed from range
+                    startShooter(autoShotRpm);   // <-- sets launchState = REVERSING
+
+                    // IMPORTANT: keep a request to feed once we reach speed
+                    feedRequested = true;
+
+                    // Note: startShooter already moved us to REVERSING state
+                } else {
+                    alignToAprilTag();
+                }
+                break;
+
+            case TURNING:
+                turnToAngle(targetYaw);
+
+            case DRIVING_TIME:
+                if (System.currentTimeMillis() / 1000.0 > driveEndTime) {
+                    driveState = DriveState.STOPPED;
+                    return;
+                }
+                drive(0.4, 0.4, 0);
+        }
+    }
+
+    public void update() {
+        updateShooter();
+        updateDrive();
+    }
+
+    public boolean isShotCompleted() {
+        return launchState == LaunchState.OFF;
+    }
+
+    public boolean isStopped() {
+        return driveState == DriveState.STOPPED;
     }
 
     private boolean approximately_equal(double a, double b, double tolerance) {
@@ -333,23 +411,23 @@ public class RobotUtils {
 
         // Create the AprilTag processor.
         aprilTag = new AprilTagProcessor.Builder()
-            .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-            .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
-            // == CAMERA CALIBRATION ==
-            .setLensIntrinsics(1432.032, 1432.032, 997.085, 1432.032)
-            // ... these parameters are fx, fy, cx, cy.
-            .setCameraPose(
-                new Position(
-                    DistanceUnit.METER,
-                    -0.05, 0.1535, 0.0508, 0
-                ),
-                new YawPitchRollAngles(
-                    AngleUnit.DEGREES,
-                    0, -90, 0, 0
+                .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+                // == CAMERA CALIBRATION ==
+                .setLensIntrinsics(1432.032, 1432.032, 997.085, 1432.032)
+                // ... these parameters are fx, fy, cx, cy.
+                .setCameraPose(
+                        new Position(
+                                DistanceUnit.METER,
+                                -0.05, 0.1535, 0.0508, 0
+                        ),
+                        new YawPitchRollAngles(
+                                AngleUnit.DEGREES,
+                                0, -90, 0, 0
+                        )
                 )
-            )
 
-            .build();
+                .build();
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
@@ -371,13 +449,13 @@ public class RobotUtils {
     }
 
     // Add data about AprilTag detections.
-    public AprilTagPoseFtc get_apriltag_data(int apriltag_id) {
+    public AprilTagPoseFtc getApriltagData() {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        
+
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null && detection.id == apriltag_id) {
+            if (detection.metadata != null && detection.id == tagID) {
                 return detection.ftcPose;
             }
         }
@@ -385,8 +463,8 @@ public class RobotUtils {
         return null;
     }
 
-    public void alignToAprilTag(int tagID) {
-        AprilTagPoseFtc pose = get_apriltag_data(tagID);
+    public void alignToAprilTag() {
+        AprilTagPoseFtc pose = getApriltagData();
         if (pose == null) {
             drive(0, 0, 0); // Stop if no tag
             return;
@@ -409,11 +487,38 @@ public class RobotUtils {
         drive(forward, right, rotate);
     }
 
-    public boolean isAligned(int tagID) {
-        AprilTagPoseFtc pose = get_apriltag_data(tagID);
+    public boolean isAligned() {
+        AprilTagPoseFtc pose = getApriltagData();
         if (pose == null) return true;
 
         return Math.abs(pose.bearing) < 5.0; // only bearing for now;
+    }
+
+    public double calculateRPM() {
+        if (leftLaunch == null) return 0.0;
+
+        AprilTagPoseFtc pose = getApriltagData();
+        if (pose == null) return 0.0;
+
+        return rpmFromRange(pose.range);
+    }
+
+    /**
+     * Distance->RPM mapping using linear interpolation.
+     * Maps ranges: 106->2300, 119->2400, 145->2500, 150->3000
+     **/
+    public double rpmFromRange(double rangeIn) {
+        if (rangeIn <= 106) return 2300;
+        if (rangeIn <= 119) {
+            return 2300 + (rangeIn - 106) / (119 - 106) * (2400 - 2300);
+        }
+        if (rangeIn <= 145) {
+            return 2400 + (rangeIn - 119) / (145 - 119) * (2500 - 2400);
+        }
+        if (rangeIn <= 150) {
+            return 2500 + (rangeIn - 145) / (150 - 145) * (3000 - 2500);
+        }
+        return 3000;
     }
 
     private double clamp(double value, double min, double max) {

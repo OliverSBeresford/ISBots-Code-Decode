@@ -1,24 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
-import org.firstinspires.ftc.teamcode.RobotUtils;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import com.qualcomm.robotcore.hardware.ColorSensor;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-
-import java.net.InterfaceAddress;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 /*
  * This robot has a two-motor differential-steered (sometimes called tank or skid steer) drivetrain.
@@ -81,7 +66,7 @@ public class TestLaunch extends OpMode {
         }
 
         // Must be called every loop
-        robot.updateShooter();
+        robot.update();
 
         telemetry.addData("Shooter State", robot.launchState);
         telemetry.addData("Velocity", robot.leftLaunch.getVelocity(AngleUnit.RADIANS));
